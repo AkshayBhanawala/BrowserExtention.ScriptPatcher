@@ -1,0 +1,48 @@
+{
+	"manifest_version": 3,
+	"name": "Script Patcher - TTD Timer",
+	"description": "Script patcher for TTD timer to bypass the booking timers.",
+	"version": "1.0",
+	"permissions": [
+		"webRequest",
+		"webRequestBlocking",
+		"webRequestFilterResponse",
+		"tabs",
+		"storage"
+	],
+	"host_permissions": [
+		"https://ttdevasthanams.ap.gov.in/*"
+	],
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "ttd-timer-patcher@your-domain-or-nick",
+			"strict_min_version": "109.0"
+		}
+	},
+	"background": {
+		"scripts": [
+			"serviceWorker.js"
+		]
+	},
+	"options_ui": {
+		"page": "options.html",
+		"open_in_tab": true
+	},
+	"icons": {
+		"16": "assets/ScriptPatcher.logo.png",
+		"24": "assets/ScriptPatcher.logo.png",
+		"32": "assets/ScriptPatcher.logo.png",
+		"48": "assets/ScriptPatcher.logo.png",
+		"128": "assets/ScriptPatcher.logo.png"
+	},
+	"action": {
+		"default_popup": "options.html",
+		"default_icon": {
+			"16": "assets/ScriptPatcher.logo.png",
+			"24": "assets/ScriptPatcher.logo.png",
+			"32": "assets/ScriptPatcher.logo.png",
+			"48": "assets/ScriptPatcher.logo.png",
+			"128": "assets/ScriptPatcher.logo.png"
+		}
+	}
+}

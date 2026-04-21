@@ -1,0 +1,35 @@
+{
+	"manifest_version": 3,
+	"name": "Script Patcher",
+	"description": "Modify JavaScript/JS/Script files on the fly",
+	"version": "1.0",
+	"permissions": [
+		"debugger",
+		"tabs",
+		"storage"
+	],
+	"host_permissions": [
+		"*://*/*"
+	],
+	"background": {
+		"service_worker": "serviceWorker.js"
+	},
+	"options_page": "options.html",
+	"icons": {
+		"16": "assets/ScriptPatcher.logo.png",
+		"24": "assets/ScriptPatcher.logo.png",
+		"32": "assets/ScriptPatcher.logo.png",
+		"48": "assets/ScriptPatcher.logo.png",
+		"128": "assets/ScriptPatcher.logo.png"
+	},
+	"action": {
+		"default_popup": "options.html",
+		"default_icon": {
+			"16": "assets/ScriptPatcher.logo.png",
+			"24": "assets/ScriptPatcher.logo.png",
+			"32": "assets/ScriptPatcher.logo.png",
+			"48": "assets/ScriptPatcher.logo.png",
+			"128": "assets/ScriptPatcher.logo.png"
+		}
+	}
+}
