@@ -1,12 +1,12 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
-		"target": "es6",
+		"module": "esnext",
+		"target": "esnext",
 		"checkJs": true,
-		"types": ["chrome", "firefox-webext-browser"]
+		"types": ["chrome", "firefox-webext-browser", "node"]
 	},
 	"typeAcquisition": {
-		"include": ["chrome", "firefox-webext-browser"]
+		"include": ["chrome", "firefox-webext-browser", "node"]
 	},
-	"exclude": ["node_modules"]
+	"exclude": ["node_modules", "dist"]
 }

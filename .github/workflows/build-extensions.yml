@@ -1,0 +1,55 @@
+name: Build Extensions
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build Chrome and Firefox packages
+        run: node scripts/build-extensions.mjs
+
+      - name: Read extension versions
+        id: versions
+        run: |
+          chrome_version=$(node -p "JSON.parse(require('fs').readFileSync('Chrome/manifest.json', 'utf8')).version")
+          firefox_version=$(node -p "JSON.parse(require('fs').readFileSync('FireFox/manifest.json', 'utf8')).version")
+          echo "chrome_version=$chrome_version" >> "$GITHUB_OUTPUT"
+          echo "firefox_version=$firefox_version" >> "$GITHUB_OUTPUT"
+
+      - name: Archive Chrome extension
+        working-directory: dist/chrome
+        run: zip -r "../script-patcher-chrome-v${{ steps.versions.outputs.chrome_version }}.zip" .
+
+      - name: Archive Firefox extension
+        working-directory: dist/firefox
+        run: zip -r "../script-patcher-firefox-v${{ steps.versions.outputs.firefox_version }}.zip" .
+
+      - name: Upload Chrome artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: script-patcher-chrome-v${{ steps.versions.outputs.chrome_version }}
+          path: dist/script-patcher-chrome-v${{ steps.versions.outputs.chrome_version }}.zip
+
+      - name: Upload Firefox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: script-patcher-firefox-v${{ steps.versions.outputs.firefox_version }}
+          path: dist/script-patcher-firefox-v${{ steps.versions.outputs.firefox_version }}.zip
