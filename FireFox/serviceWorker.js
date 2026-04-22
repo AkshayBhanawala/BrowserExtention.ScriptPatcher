@@ -4,6 +4,7 @@
  * @property {Array<Rule>} rules - Array of rules for patching scripts.
 
  * @typedef Rule
+ * @property {string} name - The user-facing name for the rule.
  * @property {string} host - The host to match against.
  * @property {string} pattern - The pattern to match against the request URL.
  * @property {string} script - The script to run in the sandbox.
@@ -11,15 +12,15 @@
 
 /**
  * @type {ExtensionConfig}
-*/
+ */
 const DEFAULT_CONFIG = {
 	alertOnScriptPatched: true,
-	rules: []
+	rules: [],
 };
 
 /**
  * @type {ExtensionConfig}
-*/
+ */
 let configOptions = null;
 
 /**
@@ -33,10 +34,10 @@ let sandboxFramePromise = null;
 const pendingSandboxRuns = new Map();
 
 getConfigOptions();
-window.addEventListener("message", handleSandboxMessage);
+window.addEventListener('message', handleSandboxMessage);
 
 browser.storage.onChanged.addListener(async (changes, area) => {
-	if (area !== "sync") {
+	if (area !== 'sync') {
 		return;
 	}
 
@@ -56,15 +57,19 @@ browser.webRequest.onBeforeRequest.addListener(
 		}
 
 		const config = await getConfigOptions();
-		const matchingRules = getMatchingRules(config.rules, details.documentUrl || details.originUrl || details.url, details.url);
+		const matchingRules = getMatchingRules(
+			config.rules,
+			details.documentUrl || details.originUrl || details.url,
+			details.url,
+		);
 		if (!matchingRules.length) {
 			return;
 		}
 
 		const filter = browser.webRequest.filterResponseData(details.requestId);
-		const decoder = new TextDecoder("utf-8");
+		const decoder = new TextDecoder('utf-8');
 		const encoder = new TextEncoder();
-		let scriptBody = "";
+		let scriptBody = '';
 
 		filter.ondata = (event) => {
 			scriptBody += decoder.decode(event.data, { stream: true });
@@ -78,7 +83,7 @@ browser.webRequest.onBeforeRequest.addListener(
 				for (const rule of matchingRules) {
 					try {
 						const nextBody = await runRuleInSandbox(rule.script, scriptBody, config);
-						if (typeof nextBody === "string" && nextBody !== scriptBody) {
+						if (typeof nextBody === 'string' && nextBody !== scriptBody) {
 							scriptBody = nextBody;
 							modified = true;
 						}
@@ -103,10 +108,10 @@ browser.webRequest.onBeforeRequest.addListener(
 		return {};
 	},
 	{
-		urls: ["<all_urls>"],
-		types: ["script"]
+		urls: ['<all_urls>'],
+		types: ['script'],
 	},
-	["blocking"]
+	['blocking'],
 );
 
 /**
@@ -133,20 +138,22 @@ function normalizeConfig(config) {
 		alertOnScriptPatched: config?.alertOnScriptPatched !== false,
 		rules: Array.isArray(config?.rules)
 			? config.rules.map((rule) => normalizeRule(rule)).filter((rule) => rule.host && rule.script)
-			: []
+			: [],
 	};
 }
 
 /**
  * Normalizes a single rule, ensuring it has valid properties.
  * @param {Rule} rule - The rule to normalize.
+ * @param {number} [index=0] - The index of the rule.
  * @returns {Rule} The normalized rule.
  */
-function normalizeRule(rule) {
+function normalizeRule(rule, index = 0) {
 	return {
-		host: String(rule?.host || "").trim(),
-		pattern: String(rule?.pattern || "").trim(),
-		script: String(rule?.script || "").trim()
+		name: String(rule?.name || '').trim() || `JS-Rule-${index + 1}`,
+		host: String(rule?.host || '').trim(),
+		pattern: String(rule?.pattern || '').trim(),
+		script: String(rule?.script || '').trim(),
 	};
 }
 
@@ -185,20 +192,22 @@ function matchesHost(filterValue, url) {
 }
 
 /**
- * Normalizes a host pattern for matching.
+ * Normalizes the host pattern.
  * @param {string} filterValue - The host pattern to normalize.
- * @returns {string} The normalized host pattern.
+ * @returns {string} - The normalized host pattern.
  */
 function normalizeHostPattern(filterValue) {
-	const trimmed = String(filterValue || "").trim().toLowerCase();
+	const trimmed = String(filterValue || '')
+		.trim()
+		.toLowerCase();
 	if (!trimmed) {
-		return "";
+		return '';
 	}
 
 	try {
-		return new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`).hostname.toLowerCase();
+		return new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`).hostname.toLowerCase();
 	} catch (error) {
-		return trimmed.split("/")[0];
+		return trimmed.split('/')[0];
 	}
 }
 
@@ -241,7 +250,7 @@ function patternStrToRegex(value) {
  */
 function isJavaScriptFile(url) {
 	try {
-		return new URL(url).pathname.toLowerCase().endsWith(".js");
+		return new URL(url).pathname.toLowerCase().endsWith('.js');
 	} catch (error) {
 		return false;
 	}
@@ -275,15 +284,18 @@ async function runRuleInSandbox(scriptSource, scriptBody, config) {
 		pendingSandboxRuns.set(requestId, {
 			resolve,
 			reject,
-			source: frame.contentWindow
+			source: frame.contentWindow,
 		});
 
-		frame.contentWindow.postMessage({
-			type: "RUN_PATCH_RULE",
-			requestId,
-			scriptSource,
-			scriptBody
-		}, "*");
+		frame.contentWindow.postMessage(
+			{
+				type: 'RUN_PATCH_RULE',
+				requestId,
+				scriptSource,
+				scriptBody,
+			},
+			'*',
+		);
 	});
 }
 
@@ -293,7 +305,7 @@ async function runRuleInSandbox(scriptSource, scriptBody, config) {
  */
 function handleSandboxMessage(event) {
 	const data = event.data;
-	if (!data || data.type !== "PATCH_RULE_RESULT") {
+	if (!data || data.type !== 'PATCH_RULE_RESULT') {
 		return;
 	}
 
@@ -322,11 +334,11 @@ function ensureSandboxFrame() {
 
 	sandboxFramePromise = new Promise((resolve) => {
 		const createFrame = () => {
-			const frame = document.createElement("iframe");
-			frame.setAttribute("sandbox", "allow-scripts");
-			frame.src = browser.runtime.getURL("sandbox.html");
-			frame.style.display = "none";
-			frame.addEventListener("load", () => resolve(frame), { once: true });
+			const frame = document.createElement('iframe');
+			frame.setAttribute('sandbox', 'allow-scripts');
+			frame.src = browser.runtime.getURL('sandbox.html');
+			frame.style.display = 'none';
+			frame.addEventListener('load', () => resolve(frame), { once: true });
 			document.body.appendChild(frame);
 		};
 
@@ -335,7 +347,7 @@ function ensureSandboxFrame() {
 			return;
 		}
 
-		window.addEventListener("DOMContentLoaded", createFrame, { once: true });
+		window.addEventListener('DOMContentLoaded', createFrame, { once: true });
 	});
 
 	return sandboxFramePromise;

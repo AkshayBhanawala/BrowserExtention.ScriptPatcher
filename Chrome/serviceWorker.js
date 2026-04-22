@@ -4,6 +4,7 @@
  * @property {Array<Rule>} rules - Array of rules for patching scripts.
 
  * @typedef Rule
+ * @property {string} name - The user-facing name for the rule.
  * @property {string} host - The host to match against.
  * @property {string} pattern - The pattern to match against the request URL.
  * @property {string} script - The script to run in the sandbox.
@@ -14,7 +15,7 @@
  */
 const DEFAULT_CONFIG = {
 	alertOnScriptPatched: true,
-	rules: []
+	rules: [],
 };
 
 /**
@@ -35,7 +36,7 @@ let offscreenReadyPromise = null;
 loadConfig();
 
 chrome.storage.onChanged.addListener((changes, area) => {
-	if (area !== "sync") {
+	if (area !== 'sync') {
 		return;
 	}
 
@@ -51,7 +52,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-	if (changeInfo.status !== "loading" || !tab.url) {
+	if (changeInfo.status !== 'loading' || !tab.url) {
 		return;
 	}
 	try {
@@ -64,29 +65,29 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 		if (!shouldAttach && attachedTabIds.has(tabId)) {
 			await detachDebugger(tabId);
 		}
-		} catch (error) {
-		console.error("Tab update handling failed.", error);
-			}
+	} catch (error) {
+		console.error('Tab update handling failed.', error);
+	}
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
 	if (!attachedTabIds.has(tabId)) {
 		return;
-		}
+	}
 
 	detachDebugger(tabId).catch((error) => {
-		console.error("Failed to detach debugger on tab removal.", error);
+		console.error('Failed to detach debugger on tab removal.', error);
 	});
 });
 
 chrome.debugger.onDetach.addListener((source) => {
-	if (typeof source.tabId === "number") {
+	if (typeof source.tabId === 'number') {
 		attachedTabIds.delete(source.tabId);
-}
+	}
 });
 
 chrome.debugger.onEvent.addListener(async (source, method, params) => {
-	if (method !== "Fetch.requestPaused" || typeof source.tabId !== "number") {
+	if (method !== 'Fetch.requestPaused' || typeof source.tabId !== 'number') {
 		return;
 	}
 
@@ -98,15 +99,15 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 
 	try {
 		const tab = await getTab(source.tabId);
-		const documentUrl = tab?.url || "";
+		const documentUrl = tab?.url || '';
 		const matchingRules = getMatchingRules(runtimeConfig.rules, documentUrl, requestUrl);
 		if (!matchingRules.length) {
 			await continueDebuggerRequest(source, params.requestId);
 			return;
 		}
 
-		const responseBody = await sendDebuggerCommand(source, "Fetch.getResponseBody", {
-			requestId: params.requestId
+		const responseBody = await sendDebuggerCommand(source, 'Fetch.getResponseBody', {
+			requestId: params.requestId,
 		});
 		let scriptBody = decodeDebuggerBody(responseBody);
 		let modified = false;
@@ -114,7 +115,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 		for (const rule of matchingRules) {
 			try {
 				const nextBody = await runRuleInSandbox(rule.script, scriptBody);
-				if (typeof nextBody === "string" && nextBody !== scriptBody) {
+				if (typeof nextBody === 'string' && nextBody !== scriptBody) {
 					scriptBody = nextBody;
 					modified = true;
 				}
@@ -127,11 +128,11 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 			scriptBody = prependPatchSuccessMessage(scriptBody, requestUrl, runtimeConfig.alertOnScriptPatched);
 		}
 
-		await sendDebuggerCommand(source, "Fetch.fulfillRequest", {
+		await sendDebuggerCommand(source, 'Fetch.fulfillRequest', {
 			requestId: params.requestId,
 			responseCode: params.responseStatusCode || 200,
 			responseHeaders: sanitizeResponseHeaders(params.responseHeaders),
-			body: encodeDebuggerBody(scriptBody)
+			body: encodeDebuggerBody(scriptBody),
 		});
 	} catch (error) {
 		console.error(`Failed to patch ${requestUrl}`, error);
@@ -158,21 +159,23 @@ function normalizeConfig(config) {
 	return {
 		alertOnScriptPatched: config?.alertOnScriptPatched !== false,
 		rules: Array.isArray(config?.rules)
-			? config.rules.map((rule) => normalizeRule(rule)).filter((rule) => rule.host && rule.script)
-			: []
+			? config.rules.map((rule, index) => normalizeRule(rule, index)).filter((rule) => rule.host && rule.script)
+			: [],
 	};
 }
 
 /**
  * Normalizes a rule.
  * @param {Rule} rule - The rule to normalize.
+ * @param {number} [index=0] - The index of the rule.
  * @returns {Rule} - The normalized rule.
  */
-function normalizeRule(rule) {
+function normalizeRule(rule, index = 0) {
 	return {
-		host: String(rule?.host || "").trim(),
-		pattern: String(rule?.pattern || "").trim(),
-		script: String(rule?.script || "").trim()
+		name: String(rule?.name || '').trim() || `JS-Rule-${index + 1}`,
+		host: String(rule?.host || '').trim(),
+		pattern: String(rule?.pattern || '').trim(),
+		script: String(rule?.script || '').trim(),
 	};
 }
 
@@ -226,15 +229,17 @@ function matchesHost(filterValue, url) {
  * @returns {string} - The normalized host pattern.
  */
 function normalizeHostPattern(filterValue) {
-	const trimmed = String(filterValue || "").trim().toLowerCase();
+	const trimmed = String(filterValue || '')
+		.trim()
+		.toLowerCase();
 	if (!trimmed) {
-		return "";
+		return '';
 	}
 
 	try {
-		return new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`).hostname.toLowerCase();
+		return new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`).hostname.toLowerCase();
 	} catch (error) {
-		return trimmed.split("/")[0];
+		return trimmed.split('/')[0];
 	}
 }
 
@@ -277,7 +282,7 @@ function patternStrToRegex(value) {
  */
 function isJavaScriptFile(url) {
 	try {
-		return new URL(url).pathname.toLowerCase().endsWith(".js");
+		return new URL(url).pathname.toLowerCase().endsWith('.js');
 	} catch (error) {
 		return false;
 	}
@@ -289,34 +294,34 @@ function isJavaScriptFile(url) {
  */
 async function attachDebugger(tabId) {
 	try {
-		await sendDebuggerCommand({ tabId }, "Target.setAutoAttach", {
+		await sendDebuggerCommand({ tabId }, 'Target.setAutoAttach', {
 			autoAttach: false,
 			waitForDebuggerOnStart: false,
-			flatten: true
+			flatten: true,
 		});
 	} catch (error) {
 		// Ignore when not attached yet.
 	}
 
 	try {
-		await chrome.debugger.attach({ tabId }, "1.3");
+		await chrome.debugger.attach({ tabId }, '1.3');
 		const lastError = chrome.runtime.lastError;
-		if (lastError && !lastError.message.includes("Another debugger is already attached")) {
+		if (lastError && !lastError?.message?.includes('Another debugger is already attached')) {
 			throw new Error(lastError.message);
 		}
 	} catch (error) {
-		throw new Error(error);
+		throw error;
 	}
 
 	attachedTabIds.add(tabId);
-	await sendDebuggerCommand({ tabId }, "Fetch.enable", {
+	await sendDebuggerCommand({ tabId }, 'Fetch.enable', {
 		patterns: [
 			{
-				urlPattern: "*",
-				resourceType: "Script",
-				requestStage: "Response"
-			}
-		]
+				urlPattern: '*',
+				resourceType: 'Script',
+				requestStage: 'Response',
+			},
+		],
 	});
 }
 
@@ -326,7 +331,7 @@ async function attachDebugger(tabId) {
  */
 async function detachDebugger(tabId) {
 	try {
-		await sendDebuggerCommand({ tabId }, "Fetch.disable", {});
+		await sendDebuggerCommand({ tabId }, 'Fetch.disable', {});
 	} catch (error) {
 		// Ignore disable errors during teardown.
 	}
@@ -362,9 +367,9 @@ async function sendDebuggerCommand(target, method, params) {
  */
 async function continueDebuggerRequest(source, requestId) {
 	try {
-		await sendDebuggerCommand(source, "Fetch.continueRequest", { requestId });
+		await sendDebuggerCommand(source, 'Fetch.continueRequest', { requestId });
 	} catch (error) {
-		console.error("Failed to continue debugger request.", error);
+		console.error('Failed to continue debugger request.', error);
 	}
 }
 
@@ -375,7 +380,7 @@ async function continueDebuggerRequest(source, requestId) {
  */
 function decodeDebuggerBody(bodyPayload) {
 	if (!bodyPayload?.body) {
-		return "";
+		return '';
 	}
 
 	if (!bodyPayload.base64Encoded) {
@@ -405,7 +410,7 @@ function sanitizeResponseHeaders(headers) {
 	}
 
 	return headers.filter((header) => {
-		return header?.name && header.name.toLowerCase() !== "content-length";
+		return header?.name && header.name.toLowerCase() !== 'content-length';
 	});
 }
 
@@ -445,12 +450,12 @@ async function runRuleInSandbox(scriptSource, scriptBody) {
 	let response;
 	try {
 		response = await chrome.runtime.sendMessage({
-			type: "RUN_PATCH_RULE",
+			type: 'RUN_PATCH_RULE',
 			payload: {
 				requestId,
 				scriptSource,
-				scriptBody
-			}
+				scriptBody,
+			},
 		});
 		const lastError = chrome.runtime.lastError;
 		if (lastError) {
@@ -461,7 +466,7 @@ async function runRuleInSandbox(scriptSource, scriptBody) {
 	}
 
 	if (!response?.ok) {
-		throw new Error(response?.error || "Sandbox execution failed.");
+		throw new Error(response?.error || 'Sandbox execution failed.');
 	}
 
 	return response.result;
@@ -479,8 +484,8 @@ async function ensureOffscreenRunner() {
 	offscreenReadyPromise = (async () => {
 		if (chrome.runtime.getContexts) {
 			const contexts = await chrome.runtime.getContexts({
-				contextTypes: ["OFFSCREEN_DOCUMENT"],
-				documentUrls: [chrome.runtime.getURL("runnerHost.html")]
+				contextTypes: ['OFFSCREEN_DOCUMENT'],
+				documentUrls: [chrome.runtime.getURL('runnerHost.html')],
 			});
 			if (contexts.length > 0) {
 				return;
@@ -489,12 +494,12 @@ async function ensureOffscreenRunner() {
 
 		try {
 			await chrome.offscreen.createDocument({
-				url: "runnerHost.html",
-				reasons: ["IFRAME_SCRIPTING"],
-				justification: "Run user-defined patch functions inside a sandboxed iframe."
+				url: 'runnerHost.html',
+				reasons: ['IFRAME_SCRIPTING'],
+				justification: 'Run user-defined patch functions inside a sandboxed iframe.',
 			});
 		} catch (error) {
-			if (!String(error?.message || error).includes("single offscreen document")) {
+			if (!String(error?.message || error).includes('single offscreen document')) {
 				throw error;
 			}
 		}

@@ -1,6 +1,6 @@
-window.addEventListener("message", async (event) => {
+window.addEventListener('message', async (event) => {
 	const payload = event.data;
-	if (!payload || payload.type !== "RUN_PATCH_RULE") {
+	if (!payload || payload.type !== 'RUN_PATCH_RULE') {
 		return;
 	}
 
@@ -10,13 +10,13 @@ window.addEventListener("message", async (event) => {
 	try {
 		const factory = new Function(`"use strict"; return (${payload.scriptSource});`);
 		const userFunction = factory();
-		if (typeof userFunction !== "function") {
-			throw new Error("Patch code must evaluate to a function.");
+		if (typeof userFunction !== 'function') {
+			throw new Error('Patch code must evaluate to a function.');
 		}
 
 		const output = await userFunction(payload.scriptBody);
-		if (typeof output !== "string") {
-			throw new Error("Patch function must return a string.");
+		if (typeof output !== 'string') {
+			throw new Error('Patch function must return a string.');
 		}
 
 		result = output;
@@ -24,10 +24,13 @@ window.addEventListener("message", async (event) => {
 		error = caughtError instanceof Error ? caughtError.message : String(caughtError);
 	}
 
-	event.source.postMessage({
-		type: "PATCH_RULE_RESULT",
-		requestId: payload.requestId,
-		result,
-		error
-	}, "*");
+	event.source.postMessage(
+		{
+			type: 'PATCH_RULE_RESULT',
+			requestId: payload.requestId,
+			result,
+			error,
+		},
+		'*',
+	);
 });

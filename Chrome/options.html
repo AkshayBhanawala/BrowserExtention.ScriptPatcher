@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 	<head>
-		<meta charset="utf-8">
+		<meta charset="utf-8" />
 		<title>Script Patcher</title>
 		<style>
 			:root {
@@ -24,12 +24,24 @@
 				padding: 20px;
 				background: radial-gradient(circle at top, rgba(29, 209, 143, 0.1), transparent 35%), var(--bg-color);
 				color: var(--text-color);
-				font-family: "Segoe UI", sans-serif;
-				min-width: 520px;
+				font-family: 'Segoe UI', sans-serif;
+				min-width: 650px;
+			}
+
+			body.blur {
+				filter: blur(10px);
+				pointer-events: none;
+			}
+
+			textarea,
+			pre {
+				-moz-tab-size: 2;
+				-o-tab-size: 2;
+				tab-size: 2;
 			}
 
 			.layout {
-				max-width: 960px;
+				max-width: 1080px;
 				margin: 0 auto;
 			}
 
@@ -102,7 +114,7 @@
 			}
 
 			.slider::before {
-				content: "";
+				content: '';
 				position: absolute;
 				left: 4px;
 				top: 4px;
@@ -143,9 +155,63 @@
 				background: rgba(255, 255, 255, 0.02);
 				border: 1px solid var(--surface-border);
 				border-radius: 14px;
-				padding: 14px;
+				padding: 5px;
 				display: grid;
 				gap: 12px;
+				transition:
+					border-color 0.2s ease,
+					background 0.2s ease;
+			}
+
+			.rule-header {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				min-height: 40px;
+				cursor: pointer;
+				user-select: none;
+				outline: none;
+			}
+
+			.rule-header:focus-visible {
+				border-radius: 10px;
+				box-shadow: 0 0 0 2px rgba(29, 209, 143, 0.45);
+			}
+
+			.expand-icon {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				width: 14px;
+				transition:
+					transform 0.2s ease,
+					color 0.2s ease;
+			}
+
+			.rule-card[data-expanded='true'] .expand-icon {
+				transform: rotate(90deg);
+				color: var(--primary-color);
+				filter: brightness(0) saturate(100%) invert(57%) sepia(63%) saturate(501%) hue-rotate(106deg) brightness(102%)
+					contrast(97%);
+			}
+
+			.rule-title {
+				flex: 1;
+				text-align: left;
+				font-size: 15px;
+				font-weight: 700;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.rule-details {
+				display: grid;
+				gap: 12px;
+			}
+
+			.rule-card[data-expanded='false'] .rule-details {
+				display: none;
 			}
 
 			.field-label {
@@ -173,7 +239,7 @@
 			textarea.field-control {
 				min-height: 180px;
 				resize: vertical;
-				font-family: Consolas, "Courier New", monospace;
+				font-family: Consolas, 'Courier New', monospace;
 				font-size: 13px;
 				line-height: 1.5;
 			}
@@ -184,10 +250,16 @@
 			}
 
 			button {
+				display: flex;
+				flex-direction: row;
+				justify-content: center;
+				align-items: center;
+				gap: 5px;
 				border: none;
 				border-radius: 10px;
 				padding: 10px 14px;
 				font: inherit;
+				font-size: 14px;
 				font-weight: 600;
 				cursor: pointer;
 				background: var(--primary-color);
@@ -210,6 +282,48 @@
 
 			.danger-button {
 				color: var(--danger-color);
+				border: 1px solid var(--danger-color);
+			}
+
+			.danger-button:hover {
+				background-color: var(--danger-color);
+			}
+
+			.danger-button:hover * {
+				filter: brightness(0) invert(1);
+			}
+
+			.delete-icon {
+				width: 20px;
+				height: 20px;
+			}
+
+			.delete-icon img {
+				height: 100%;
+				width: 100%;
+			}
+
+			.rule-delete {
+				display: inline-flex;
+				align-items: center;
+				padding: 6px;
+				overflow: hidden;
+				white-space: nowrap;
+				gap: 0;
+			}
+
+			.delete-label {
+				max-width: 0;
+				opacity: 0;
+				transition:
+					max-width 0.2s ease,
+					opacity 0.2s ease;
+			}
+
+			.rule-card[data-expanded='true'] .delete-label {
+				max-width: 52px;
+				opacity: 1;
+				padding-right: 5px;
 			}
 
 			.rules-footer {
@@ -217,7 +331,7 @@
 				align-items: center;
 				justify-content: space-between;
 				gap: 12px;
-				margin-top: 14px;
+				margin-top: 25px;
 			}
 
 			.empty-state {
@@ -228,11 +342,12 @@
 				text-align: center;
 			}
 
-			#save-status[data-error="true"] {
+			#save-status[data-error='true'] {
 				color: var(--danger-color);
 			}
 		</style>
 	</head>
+
 	<body>
 		<div class="layout">
 			<header>
@@ -240,7 +355,7 @@
 				<div class="header-actions">
 					<button id="export-config" type="button" class="secondary-button">Export JSON</button>
 					<button id="import-config" type="button" class="secondary-button">Import JSON</button>
-					<input id="import-config-input" type="file" accept="application/json,.json" hidden>
+					<input id="import-config-input" type="file" accept="application/json,.json" hidden />
 				</div>
 			</header>
 
@@ -251,7 +366,7 @@
 						<div class="description">Show a browser alert before a matched script continues with the patched body.</div>
 					</div>
 					<label class="switch">
-						<input type="checkbox" id="alert-on-script-patched">
+						<input type="checkbox" id="alert-on-script-patched" />
 						<span class="slider"></span>
 					</label>
 				</div>
@@ -259,15 +374,26 @@
 				<div class="rules-header">
 					<div>
 						<h2>Patch Rules</h2>
-						<div class="description">Each entry matches a page host, optionally narrows to a `*.js` URL pattern, and runs your patch function inside a browser sandbox.</div>
+						<div class="description">
+							Each entry matches a page host, optionally narrows to a `*.js` URL pattern, and runs your patch function
+							inside a browser sandbox.
+						</div>
 					</div>
 				</div>
 
-				<div id="rules-empty" class="empty-state">No patch rules yet. Use the + button to add a host, an optional JavaScript file pattern, and the patch function to run.</div>
+				<div id="rules-empty" class="empty-state">
+					No patch rules yet. Use the + button to add a host, an optional JavaScript file pattern, and the patch
+					function to run.
+				</div>
 				<div id="rules-container" class="rule-list"></div>
 
 				<div class="rules-footer">
-					<button id="add-rule" type="button">+ Add Rule</button>
+					<button id="add-rule" type="button">
+						<span style="width: 20px; height: 20px">
+							<img src="assets/Plus.svg" />
+						</span>
+						<span style="line-height: 14px">Add New Rule</span>
+					</button>
 					<div id="save-status" class="description" aria-live="polite"></div>
 				</div>
 			</section>

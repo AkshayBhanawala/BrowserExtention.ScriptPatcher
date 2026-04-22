@@ -2,7 +2,7 @@ const pendingRuns = new Map();
 let sandboxFramePromise = null;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	if (!message || message.type !== "RUN_PATCH_RULE") {
+	if (!message || message.type !== 'RUN_PATCH_RULE') {
 		return undefined;
 	}
 
@@ -13,9 +13,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	return true;
 });
 
-window.addEventListener("message", (event) => {
+window.addEventListener('message', (event) => {
 	const data = event.data;
-	if (!data || data.type !== "PATCH_RULE_RESULT") {
+	if (!data || data.type !== 'PATCH_RULE_RESULT') {
 		return;
 	}
 
@@ -39,15 +39,18 @@ async function runPatchInSandbox(payload) {
 		pendingRuns.set(payload.requestId, {
 			resolve,
 			reject,
-			source: frame.contentWindow
+			source: frame.contentWindow,
 		});
 
-		frame.contentWindow.postMessage({
-			type: "RUN_PATCH_RULE",
-			requestId: payload.requestId,
-			scriptSource: payload.scriptSource,
-			scriptBody: payload.scriptBody
-		}, "*");
+		frame.contentWindow.postMessage(
+			{
+				type: 'RUN_PATCH_RULE',
+				requestId: payload.requestId,
+				scriptSource: payload.scriptSource,
+				scriptBody: payload.scriptBody,
+			},
+			'*',
+		);
 	});
 }
 
@@ -57,11 +60,11 @@ function ensureSandboxFrame() {
 	}
 
 	sandboxFramePromise = new Promise((resolve) => {
-		const frame = document.createElement("iframe");
-		frame.setAttribute("sandbox", "allow-scripts");
-		frame.src = chrome.runtime.getURL("sandbox.html");
-		frame.style.display = "none";
-		frame.addEventListener("load", () => resolve(frame), { once: true });
+		const frame = document.createElement('iframe');
+		frame.setAttribute('sandbox', 'allow-scripts');
+		frame.src = chrome.runtime.getURL('sandbox.html');
+		frame.style.display = 'none';
+		frame.addEventListener('load', () => resolve(frame), { once: true });
 		document.body.appendChild(frame);
 	});
 
