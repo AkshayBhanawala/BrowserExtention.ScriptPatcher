@@ -1,12 +1,12 @@
 /**
- * @typedef {Object} ExtensionConfig
- * @property {boolean} alertOnScriptPatched - Whether to show an alert when a script is patched
- * @property {Array<Rule>} rules - List of patching rules defined by the user
- *
- * @typedef {Object} Rule
- * @property {string} host - Host pattern to match against the document URL (supports wildcards)
- * @property {string} pattern - URL pattern to match against the script URL (supports wildcards)
- * @property {string} script - JavaScript code to run for patching the matched script
+ * @typedef ExtensionConfig
+ * @property {boolean} alertOnScriptPatched - Whether to alert on script patched.
+ * @property {Array<Rule>} rules - Array of rules for patching scripts.
+
+ * @typedef Rule
+ * @property {string} host - The host to match against.
+ * @property {string} pattern - The pattern to match against the request URL.
+ * @property {string} script - The script to run in the sandbox.
  */
 
 /**
@@ -109,6 +109,10 @@ browser.webRequest.onBeforeRequest.addListener(
 	["blocking"]
 );
 
+/**
+ * Initializes the configuration options and loads the default config.
+ * @returns {Promise<ExtensionConfig>} The loaded configuration options.
+ */
 async function getConfigOptions() {
 	if (configOptions) {
 		return configOptions;
@@ -119,6 +123,11 @@ async function getConfigOptions() {
 	return configOptions;
 }
 
+/**
+ * Normalizes the configuration options, ensuring they are valid and well-structured.
+ * @param {ExtensionConfig} config - The configuration to normalize.
+ * @returns {ExtensionConfig} The normalized configuration.
+ */
 function normalizeConfig(config) {
 	return {
 		alertOnScriptPatched: config?.alertOnScriptPatched !== false,
@@ -128,6 +137,11 @@ function normalizeConfig(config) {
 	};
 }
 
+/**
+ * Normalizes a single rule, ensuring it has valid properties.
+ * @param {Rule} rule - The rule to normalize.
+ * @returns {Rule} The normalized rule.
+ */
 function normalizeRule(rule) {
 	return {
 		host: String(rule?.host || "").trim(),
@@ -136,12 +150,25 @@ function normalizeRule(rule) {
 	};
 }
 
+/**
+ * Retrieves matching rules for a given URL and document URL.
+ * @param {Array<Rule>} rules - The list of rules to check against.
+ * @param {string} documentUrl - The document URL.
+ * @param {string} requestUrl - The request URL.
+ * @returns {Array<Rule>} An array of matching rules.
+ */
 function getMatchingRules(rules, documentUrl, requestUrl) {
 	return rules.filter((rule) => {
 		return matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl);
 	});
 }
 
+/**
+ * Checks if the hostname of a URL matches a given host pattern.
+ * @param {string} filterValue - The host pattern to match against.
+ * @param {string} url - The URL to check.
+ * @returns {boolean} True if the host matches the pattern, false otherwise.
+ */
 function matchesHost(filterValue, url) {
 	const hostPattern = normalizeHostPattern(filterValue);
 	if (!hostPattern) {
@@ -157,6 +184,11 @@ function matchesHost(filterValue, url) {
 	}
 }
 
+/**
+ * Normalizes a host pattern for matching.
+ * @param {string} filterValue - The host pattern to normalize.
+ * @returns {string} The normalized host pattern.
+ */
 function normalizeHostPattern(filterValue) {
 	const trimmed = String(filterValue || "").trim().toLowerCase();
 	if (!trimmed) {
@@ -170,6 +202,12 @@ function normalizeHostPattern(filterValue) {
 	}
 }
 
+/**
+ * Checks if a request URL matches a given pattern.
+ * @param {string} pattern - The pattern to match against.
+ * @param {string} requestUrl - The request URL to check.
+ * @returns {boolean} True if the URL matches the pattern, false otherwise.
+ */
 function matchesPattern(pattern, requestUrl) {
 	if (!isJavaScriptFile(requestUrl)) {
 		return false;
@@ -183,17 +221,24 @@ function matchesPattern(pattern, requestUrl) {
 	return Boolean(regex && regex.test(requestUrl.toLowerCase()));
 }
 
+/**
+ * Converts a pattern string to a regular expression.
+ * @param {string} value - The pattern string to convert.
+ * @returns {RegExp} The resulting regular expression.
+ */
 function patternStrToRegex(value) {
 	if (!value) {
 		return null;
 	}
 
-	// const escaped = value.replace(/([.+?^=!:${}()|[\]/\\])/g, "\\$1");
-	// return new RegExp(`^${escaped.replace(/\*/g, ".*")}$`);
-
 	return new RegExp(value, 'gi');
 }
 
+/**
+ * Determines if a URL is a JavaScript file.
+ * @param {string} url - The URL to check.
+ * @returns {boolean} True if the URL is a JavaScript file, false otherwise.
+ */
 function isJavaScriptFile(url) {
 	try {
 		return new URL(url).pathname.toLowerCase().endsWith(".js");
@@ -202,12 +247,26 @@ function isJavaScriptFile(url) {
 	}
 }
 
+/**
+ * Prepends a success message to the script body and optionally shows an alert.
+ * @param {string} scriptBody - The original script body.
+ * @param {string} requestUrl - The URL of the script being patched.
+ * @param {boolean} alertOnScriptPatched - Whether to show an alert.
+ * @returns {string} The modified script body with a success message.
+ */
 function prependPatchSuccessMessage(scriptBody, requestUrl, alertOnScriptPatched) {
 	const successMessage = `✅ Script patched successfully!\nURL: ${requestUrl}`;
 	scriptBody = `console.log(${JSON.stringify(successMessage)});\n${scriptBody}`;
 	return alertOnScriptPatched ? `alert(${JSON.stringify(successMessage)});\n${scriptBody}` : scriptBody;
 }
 
+/**
+ * Runs a patch rule in a sandboxed environment.
+ * @param {string} scriptSource - The source code of the patch rule.
+ * @param {string} scriptBody - The body of the script to be patched.
+ * @param {ExtensionConfig} config - The current configuration options.
+ * @returns {Promise<string>} A promise resolving to the modified script body.
+ */
 async function runRuleInSandbox(scriptSource, scriptBody, config) {
 	const frame = await ensureSandboxFrame();
 	const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -228,6 +287,10 @@ async function runRuleInSandbox(scriptSource, scriptBody, config) {
 	});
 }
 
+/**
+ * Handles messages from the sandbox frame.
+ * @param {MessageEvent} event - The message event received from the sandbox.
+ */
 function handleSandboxMessage(event) {
 	const data = event.data;
 	if (!data || data.type !== "PATCH_RULE_RESULT") {
@@ -248,6 +311,10 @@ function handleSandboxMessage(event) {
 	pending.resolve(data.result);
 }
 
+/**
+ * Ensures the existence of a sandbox frame and returns it.
+ * @returns {Promise<HTMLIFrameElement>} A promise resolving to the sandbox iframe.
+ */
 function ensureSandboxFrame() {
 	if (sandboxFramePromise) {
 		return sandboxFramePromise;

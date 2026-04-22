@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es6",
+		"checkJs": true,
+		"types": ["chrome", "firefox-webext-browser"]
+	},
+	"typeAcquisition": {
+		"include": ["chrome", "firefox-webext-browser"]
+	},
+	"exclude": ["node_modules"]
+}

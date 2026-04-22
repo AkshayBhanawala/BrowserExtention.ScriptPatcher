@@ -3,6 +3,7 @@
 	"name": "Script Patcher",
 	"description": "Patch matched JavaScript files with sandboxed user-defined rules.",
 	"version": "1.1",
+	"minimum_chrome_version": "100",
 	"permissions": [
 		"debugger",
 		"tabs",

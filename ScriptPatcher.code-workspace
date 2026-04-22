@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "ScriptPatcher",
+			"path": ".",
+		},
+		{
+			"name": "Chrome",
+			"path": "Chrome",
+		},
+		{
+			"name": "FireFox",
+			"path": "FireFox",
+		},
+	],
+	"settings": {},
+}

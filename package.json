@@ -1,0 +1,9 @@
+{
+  "name": "script-patcher",
+  "description": "Patch matched JavaScript files with sandboxed user-defined rules.",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@types/chrome": "^0.1.40",
+    "@types/firefox-webext-browser": "^143.0.0"
+  }
+}
