@@ -178,9 +178,8 @@ The build script copies the browser-specific source folders into `dist/chrome` a
 - Firefox support depends on APIs available in modern Firefox releases
 
 
-## Placeholder Images
-
-The images in `docs/images` are intentionally placeholders so real screenshots or diagrams can be dropped in later without changing the README structure.
+## Privacy Policy
+[Find it HERE](https://rawcdn.githack.com/AkshayBhanawala/BrowserExtention.ScriptPatcher/refs/heads/master/docs/PrivacyPolicy.html)
 
 ## License
 
