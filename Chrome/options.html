@@ -1,81 +1,101 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
 	<head>
-		<title>Script Patcher - TTD Timer - Options</title>
+		<meta charset="utf-8" />
+		<title>Script Patcher</title>
 		<style>
 			:root {
-				/* Material Dark Theme Colors */
 				--bg-color: #121212;
-				--surface-color: #1e1e1e;
-				--primary-color: #0ed077;
-				--primary-variant: #008b4a;
-				--on-surface: #e1e1e1;
-				--on-surface-medium: #b0b0b0;
+				--surface-color: #1c1f24;
+				--surface-border: #2c3138;
+				--primary-color: #1dd18f;
+				--primary-strong: #13a872;
+				--text-color: #eef3f1;
+				--muted-text: #9ea8ad;
+				--danger-color: #ef6f6c;
 			}
 
 			* {
 				box-sizing: border-box;
-				transition: 0.2s ease-in;
 			}
 
 			body {
-				background-color: var(--bg-color);
-				color: var(--on-surface);
-				font-family: 'Roboto', sans-serif;
 				margin: 0;
-				padding: 16px;
-				width: 100%;
-				display: flex;
-				justify-content: center;
-				flex-direction: column;
-				align-items: center;
-				min-width: 500px;
-				min-height: 200px;
-				box-sizing: border-box;
+				padding: 20px;
+				background: radial-gradient(circle at top, rgba(29, 209, 143, 0.1), transparent 35%), var(--bg-color);
+				color: var(--text-color);
+				font-family: 'Segoe UI', sans-serif;
+				min-width: 650px;
+			}
+
+			body.blur {
+				filter: blur(10px);
+				pointer-events: none;
+			}
+
+			textarea,
+			pre {
+				-moz-tab-size: 2;
+				-o-tab-size: 2;
+				tab-size: 2;
+			}
+
+			.layout {
+				max-width: 1080px;
+				margin: 0 auto;
 			}
 
 			header {
-				font-size: 35px;
-				font-weight: bold;
-				margin-top: 15px;
-				margin-bottom: 30px;
-				color: aquamarine;
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+				margin-bottom: 18px;
 			}
 
-			/* Container for the setting row */
+			h1 {
+				margin: 0;
+				font-size: 32px;
+				color: var(--primary-color);
+			}
+
+			.header-actions {
+				display: flex;
+				justify-content: flex-end;
+				gap: 10px;
+			}
+
+			.panel {
+				background: var(--surface-color);
+				border: 1px solid var(--surface-border);
+				border-radius: 16px;
+				padding: 18px;
+				box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
+			}
+
 			.setting-row {
 				display: flex;
-				align-items: flex-start;
+				align-items: center;
 				justify-content: space-between;
-				padding: 8px 0;
-			}
-
-			.text-container {
-				flex: 1;
-				padding-right: 12px;
+				gap: 16px;
 			}
 
 			.title {
 				font-size: 18px;
-				font-weight: 500;
-				display: block;
-				margin-bottom: 4px;
+				font-weight: 600;
 			}
 
 			.description {
+				color: var(--muted-text);
 				font-size: 14px;
-				color: var(--on-surface-medium);
-				line-height: 1.4;
+				line-height: 1.5;
 			}
 
-			/* Material Switch Styling */
 			.switch {
 				position: relative;
 				display: inline-block;
-				width: 36px;
-				height: 20px;
-				margin-top: 4px;
+				width: 46px;
+				height: 26px;
+				flex-shrink: 0;
 			}
 
 			.switch input {
@@ -86,72 +106,299 @@
 
 			.slider {
 				position: absolute;
+				inset: 0;
+				border-radius: 999px;
+				background: #4b5560;
 				cursor: pointer;
-				top: 0;
-				left: 0;
-				right: 0;
-				bottom: 0;
-				background-color: #555;
-				transition: .3s;
-				border-radius: 20px;
+				transition: background 0.2s ease;
 			}
 
-			.slider:before {
+			.slider::before {
+				content: '';
 				position: absolute;
-				content: "";
-				height: 14px;
-				width: 14px;
-				left: 3px;
-				bottom: 3px;
-				background-color: white;
-				transition: .3s;
+				left: 4px;
+				top: 4px;
+				width: 18px;
+				height: 18px;
 				border-radius: 50%;
-				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+				background: white;
+				transition: transform 0.2s ease;
 			}
 
-			input:checked+.slider {
-				background-color: var(--primary-variant);
+			.switch input:checked + .slider {
+				background: var(--primary-strong);
 			}
 
-			input:checked+.slider:before {
-				transform: translateX(16px);
-				background-color: var(--primary-color);
+			.switch input:checked + .slider::before {
+				transform: translateX(20px);
 			}
 
-			/* Ripple-like hover effect */
-			.switch:hover .slider:before {
-				box-shadow: 0 0 0 8px rgba(187, 134, 252, 0.1);
+			h2 {
+				margin: 0 0 8px;
+				font-size: 22px;
+			}
+
+			.rules-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+				margin: 22px 0 10px;
+			}
+
+			.rule-list {
+				display: grid;
+				gap: 14px;
+			}
+
+			.rule-card {
+				background: rgba(255, 255, 255, 0.02);
+				border: 1px solid var(--surface-border);
+				border-radius: 14px;
+				padding: 5px;
+				display: grid;
+				gap: 12px;
+				transition:
+					border-color 0.2s ease,
+					background 0.2s ease;
+			}
+
+			.rule-header {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				min-height: 40px;
+				cursor: pointer;
+				user-select: none;
+				outline: none;
+			}
+
+			.rule-header:focus-visible {
+				border-radius: 10px;
+				box-shadow: 0 0 0 2px rgba(29, 209, 143, 0.45);
+			}
+
+			.expand-icon {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				width: 14px;
+				transition:
+					transform 0.2s ease,
+					color 0.2s ease;
+			}
+
+			.rule-card[data-expanded='true'] .expand-icon {
+				transform: rotate(90deg);
+				color: var(--primary-color);
+				filter: brightness(0) saturate(100%) invert(57%) sepia(63%) saturate(501%) hue-rotate(106deg) brightness(102%)
+					contrast(97%);
+			}
+
+			.rule-title {
+				flex: 1;
+				text-align: left;
+				font-size: 15px;
+				font-weight: 700;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.rule-details {
+				display: grid;
+				gap: 12px;
+			}
+
+			.rule-card[data-expanded='false'] .rule-details {
+				display: none;
+			}
+
+			.field-label {
+				display: grid;
+				gap: 6px;
+				font-size: 13px;
+				font-weight: 600;
+			}
+
+			.field-control {
+				width: 100%;
+				border: 1px solid #3a4048;
+				border-radius: 10px;
+				padding: 10px 12px;
+				background: #11151a;
+				color: var(--text-color);
+				font: inherit;
+			}
+
+			.field-control:focus {
+				outline: 1px solid var(--primary-color);
+				border-color: var(--primary-color);
+			}
+
+			textarea.field-control {
+				min-height: 180px;
+				resize: vertical;
+				font-family: Consolas, 'Courier New', monospace;
+				font-size: 13px;
+				line-height: 1.5;
+			}
+
+			.rule-actions {
+				display: flex;
+				justify-content: flex-end;
+			}
+
+			button {
+				display: flex;
+				flex-direction: row;
+				justify-content: center;
+				align-items: center;
+				gap: 5px;
+				border: none;
+				border-radius: 10px;
+				padding: 10px 14px;
+				font: inherit;
+				font-size: 14px;
+				font-weight: 600;
+				cursor: pointer;
+				background: var(--primary-color);
+				color: #052c1d;
+			}
+
+			button:hover {
+				background: #35e5a4;
+			}
+
+			.secondary-button {
+				background: transparent;
+				color: var(--text-color);
+				border: 1px solid #4a515b;
+			}
+
+			.secondary-button:hover {
+				background: rgba(255, 255, 255, 0.05);
+			}
+
+			.danger-button {
+				color: var(--danger-color);
+				border: 1px solid var(--danger-color);
+			}
+
+			.danger-button:hover {
+				background-color: var(--danger-color);
+			}
+
+			.danger-button:hover * {
+				filter: brightness(0) invert(1);
+			}
+
+			.delete-icon {
+				width: 20px;
+				height: 20px;
+			}
+
+			.delete-icon img {
+				height: 100%;
+				width: 100%;
+			}
+
+			.rule-delete {
+				display: inline-flex;
+				align-items: center;
+				padding: 6px;
+				overflow: hidden;
+				white-space: nowrap;
+				gap: 0;
+			}
+
+			.delete-label {
+				max-width: 0;
+				opacity: 0;
+				transition:
+					max-width 0.2s ease,
+					opacity 0.2s ease;
+			}
+
+			.rule-card[data-expanded='true'] .delete-label {
+				max-width: 52px;
+				opacity: 1;
+				padding-right: 5px;
+			}
+
+			.rules-footer {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+				margin-top: 25px;
+			}
+
+			.empty-state {
+				padding: 18px;
+				border: 1px dashed #3b434c;
+				border-radius: 14px;
+				color: var(--muted-text);
+				text-align: center;
+			}
+
+			#save-status[data-error='true'] {
+				color: var(--danger-color);
 			}
 		</style>
 	</head>
 
 	<body>
-		<header>Script Patcher - TTD Timer</header>
-		<div class="setting-row">
-			<div class="text-container">
-				<span class="title">Alert on Script Patched</span>
-				<span class="description">Show an alert notification when the script is successfully patched.</span>
-			</div>
+		<div class="layout">
+			<header>
+				<h1>Script Patcher</h1>
+				<div class="header-actions">
+					<button id="export-config" type="button" class="secondary-button">Export JSON</button>
+					<button id="import-config" type="button" class="secondary-button">Import JSON</button>
+					<input id="import-config-input" type="file" accept="application/json,.json" hidden />
+				</div>
+			</header>
 
-			<label class="switch">
-				<input type="checkbox" id="alert-on-script-patched">
-				<span class="slider"></span>
-			</label>
+			<section class="panel">
+				<div class="setting-row">
+					<div>
+						<div class="title">Alert On Script Patched</div>
+						<div class="description">Show a browser alert before a matched script continues with the patched body.</div>
+					</div>
+					<label class="switch">
+						<input type="checkbox" id="alert-on-script-patched" />
+						<span class="slider"></span>
+					</label>
+				</div>
+
+				<div class="rules-header">
+					<div>
+						<h2>Patch Rules</h2>
+						<div class="description">
+							Each entry matches a page host, optionally narrows to a `*.js` URL pattern, and runs your patch function
+							inside a browser sandbox.
+						</div>
+					</div>
+				</div>
+
+				<div id="rules-empty" class="empty-state">
+					No patch rules yet. Use the + button to add a host, an optional JavaScript file pattern, and the patch
+					function to run.
+				</div>
+				<div id="rules-container" class="rule-list"></div>
+
+				<div class="rules-footer">
+					<button id="add-rule" type="button">
+						<span style="width: 20px; height: 20px">
+							<img src="assets/Plus.svg" />
+						</span>
+						<span style="line-height: 14px">Add New Rule</span>
+					</button>
+					<div id="save-status" class="description" aria-live="polite"></div>
+				</div>
+			</section>
 		</div>
 
-		<section style="width:100%; max-width:900px; margin-top:18px;">
-			<h2 style="color:var(--primary-color)">Rules</h2>
-			<p class="description">Add one or more rules that run custom JavaScript on matched script files. Host is required. Target file pattern is optional (defaults to all JS). JavaScript code must be a function that accepts `scriptBody` and returns modified content.</p>
-			<div id="rules-container"></div>
-			<div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-				<button id="add-rule">+ Add Rule</button>
-				<span id="save-status" style="color:var(--on-surface-medium)"></span>
-			</div>
-		</section>
-
 		<script src="options.js"></script>
-
-
 	</body>
-
 </html>

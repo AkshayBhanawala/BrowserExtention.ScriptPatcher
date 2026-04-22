@@ -1,12 +1,14 @@
 {
 	"manifest_version": 3,
 	"name": "Script Patcher",
-	"description": "Modify JavaScript/JS/Script files on the fly",
-	"version": "1.0",
+	"description": "Patch matched JavaScript files with sandboxed user-defined rules.",
+	"version": "1.1",
+	"minimum_chrome_version": "100",
 	"permissions": [
 		"debugger",
 		"tabs",
-		"storage"
+		"storage",
+		"offscreen"
 	],
 	"host_permissions": [
 		"*://*/*"
@@ -15,6 +17,11 @@
 		"service_worker": "serviceWorker.js"
 	},
 	"options_page": "options.html",
+	"sandbox": {
+		"pages": [
+			"sandbox.html"
+		]
+	},
 	"icons": {
 		"16": "assets/ScriptPatcher.logo.png",
 		"24": "assets/ScriptPatcher.logo.png",

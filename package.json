@@ -1,0 +1,16 @@
+{
+  "name": "script-patcher",
+  "description": "Patch matched JavaScript files with sandboxed user-defined rules.",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-extensions.mjs",
+    "build:chrome": "node scripts/build-extensions.mjs chrome",
+    "build:firefox": "node scripts/build-extensions.mjs firefox"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.40",
+    "@types/firefox-webext-browser": "^143.0.0",
+    "@types/node": "^25.6.0"
+  }
+}
