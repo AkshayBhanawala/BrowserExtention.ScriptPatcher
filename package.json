@@ -1,7 +1,7 @@
 {
   "name": "script-patcher",
   "description": "Patch matched JavaScript files with sandboxed user-defined rules.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "build": "node scripts/build-extensions.mjs",
