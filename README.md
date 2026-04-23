@@ -1,4 +1,4 @@
-# Script Patcher
+# [Script Patcher](https://github.com/AkshayBhanawala/BrowserExtention.ScriptPatcher)
 
 ![Script Patcher logo](./docs/images/ScriptPatcher.png)
 
