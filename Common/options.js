@@ -205,10 +205,11 @@ function addRule(container, emptyState, rule, options = {}) {
 		},
 		{
 			tag: 'checkbox',
-			label: 'Show Webpage Notification',
+			label: 'Show Website Toast Notification',
 			className: 'webpage-notification-on-script-patched-input',
 			checked: normalizedRule.webpageNotificationOnScriptPatched,
-			description: 'Inject and show the webpage notification UI when this rule patches a matched script.',
+			description: 'Show a toast notification on the website when this rule patches a matched script.',
+			pseudoTooltip: 'Toast Notification?',
 		},
 		{
 			tag: 'checkbox',
@@ -216,6 +217,7 @@ function addRule(container, emptyState, rule, options = {}) {
 			className: 'alert-on-script-patched-input',
 			checked: normalizedRule.alertOnScriptPatched,
 			description: 'Show a browser alert when this rule patches a matched script.',
+			pseudoTooltip: 'Alert?',
 		},
 		{
 			tag: 'textarea',
@@ -242,7 +244,7 @@ function addRule(container, emptyState, rule, options = {}) {
 			description.textContent = field.description;
 
 			text.append(label, description);
-			row.append(text, createToggle(field.className, field.checked, field.label, 'Alert?'));
+			row.append(text, createToggle(field.className, field.checked, field.label, field.pseudoTooltip || 'Alert?'));
 			details.appendChild(row);
 			return;
 		}
