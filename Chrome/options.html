@@ -48,7 +48,7 @@
 			header {
 				display: flex;
 				flex-direction: column;
-				gap: 10px;
+				gap: 16px;
 				margin-bottom: 18px;
 			}
 
@@ -60,7 +60,18 @@
 
 			.header-actions {
 				display: flex;
-				justify-content: flex-end;
+				justify-content: space-between;
+				gap: 10px;
+			}
+
+			.header-actions .extension-status-switch {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+
+			.header-actions .config-actions {
+				display: flex;
 				gap: 10px;
 			}
 
@@ -205,6 +216,10 @@
 				white-space: nowrap;
 			}
 
+			.rule-toggle {
+				margin-left: auto;
+			}
+
 			.rule-details {
 				display: grid;
 				gap: 12px;
@@ -312,6 +327,17 @@
 				gap: 0;
 			}
 
+			.inline-setting {
+				padding: 12px 14px;
+				border: 1px solid #3a4048;
+				border-radius: 10px;
+				background: #11151a;
+			}
+
+			.inline-label {
+				margin: 0 0 4px;
+			}
+
 			.delete-label {
 				max-width: 0;
 				opacity: 0;
@@ -345,6 +371,44 @@
 			#save-status[data-error='true'] {
 				color: var(--danger-color);
 			}
+
+			.pseudo-tooltip {
+				position: relative;
+				justify-content: center;
+				display: flex;
+				overflow: unset !important;
+			}
+
+			.pseudo-tooltip::before {
+				content: attr(data-pseudo-tooltip);
+				z-index: -1;
+				display: block;
+				position: absolute;
+				top: 0;
+				font-size: 14px;
+				font-weight: normal;
+				font-style: normal;
+				background-color: #32373f;
+				color: var(--text-color);
+				border: 1px solid #616161;
+				padding: 2px 5px;
+				border-radius: 10px;
+				white-space: nowrap;
+				overflow: hidden;
+				opacity: 0;
+				visibility: hidden;
+				pointer-events: none;
+				transform: translate(0px, 0px) scale(0);
+				filter: drop-shadow(0px 3px 4px rgba(0, 0, 0, 0.8)) brightness(0.8);
+				transition: 0.2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+			}
+
+			.pseudo-tooltip:hover::before {
+				z-index: 1;
+				opacity: 1;
+				visibility: visible;
+				transform: translate(0px, -150%) scale(1);
+			}
 		</style>
 	</head>
 
@@ -353,31 +417,35 @@
 			<header>
 				<h1>Script Patcher</h1>
 				<div class="header-actions">
-					<button id="export-config" type="button" class="secondary-button">Export JSON</button>
-					<button id="import-config" type="button" class="secondary-button">Import JSON</button>
-					<input id="import-config-input" type="file" accept="application/json,.json" hidden />
+					<div class="extension-status-switch">
+						<label class="switch">
+							<input type="checkbox" id="extension-enabled" />
+							<span class="slider"></span>
+						</label>
+						<div>
+							<div class="title">Extension Enabled?</div>
+							<small class="description">
+								Turn patching on or off globally.<br />
+								Disabling clears active debugger sessions.
+							</small>
+						</div>
+					</div>
+					<div class="config-actions">
+						<button id="export-config" type="button" class="secondary-button">Export JSON</button>
+						<button id="import-config" type="button" class="secondary-button">Import JSON</button>
+						<input id="import-config-input" type="file" accept="application/json,.json" hidden />
+					</div>
 				</div>
 			</header>
 
 			<section class="panel">
-				<div class="setting-row">
-					<div>
-						<div class="title">Alert On Script Patched</div>
-						<div class="description">Show a browser alert before a matched script continues with the patched body.</div>
-					</div>
-					<label class="switch">
-						<input type="checkbox" id="alert-on-script-patched" />
-						<span class="slider"></span>
-					</label>
-				</div>
-
 				<div class="rules-header">
 					<div>
 						<h2>Patch Rules</h2>
-						<div class="description">
-							Each entry matches a page host, optionally narrows to a `*.js` URL pattern, and runs your patch function
-							inside a browser sandbox.
-						</div>
+						<small class="description">
+							Each entry can be enabled independently, matches a page host, optionally narrows to a `*.js` URL pattern,
+							and runs your patch function inside a browser sandbox.
+						</small>
 					</div>
 				</div>
 

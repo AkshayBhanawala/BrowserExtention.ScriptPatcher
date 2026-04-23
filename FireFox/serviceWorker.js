@@ -1,12 +1,14 @@
 /**
  * @typedef ExtensionConfig
- * @property {boolean} alertOnScriptPatched - Whether to alert on script patched.
+ * @property {boolean} enabled - Whether the extension is enabled globally.
  * @property {Array<Rule>} rules - Array of rules for patching scripts.
 
  * @typedef Rule
+ * @property {boolean} enabled - Whether this rule is enabled.
  * @property {string} name - The user-facing name for the rule.
  * @property {string} host - The host to match against.
  * @property {string} pattern - The pattern to match against the request URL.
+ * @property {boolean} alertOnScriptPatched - Whether to alert when this rule patches a script.
  * @property {string} script - The script to run in the sandbox.
  */
 
@@ -14,7 +16,7 @@
  * @type {ExtensionConfig}
  */
 const DEFAULT_CONFIG = {
-	alertOnScriptPatched: true,
+	enabled: true,
 	rules: [],
 };
 
@@ -57,6 +59,10 @@ browser.webRequest.onBeforeRequest.addListener(
 		}
 
 		const config = await getConfigOptions();
+		if (!config.enabled) {
+			return;
+		}
+
 		const matchingRules = getMatchingRules(
 			config.rules,
 			details.documentUrl || details.originUrl || details.url,
@@ -93,7 +99,8 @@ browser.webRequest.onBeforeRequest.addListener(
 				}
 
 				if (modified) {
-					scriptBody = prependPatchSuccessMessage(scriptBody, details.url, config.alertOnScriptPatched);
+					const shouldAlert = matchingRules.some((rule) => rule.alertOnScriptPatched);
+					scriptBody = prependPatchSuccessMessage(scriptBody, details.url, shouldAlert);
 				}
 
 				filter.write(encoder.encode(scriptBody));
@@ -112,6 +119,45 @@ browser.webRequest.onBeforeRequest.addListener(
 		types: ['script'],
 	},
 	['blocking'],
+);
+
+browser.webRequest.onBeforeSendHeaders.addListener(
+	async (details) => {
+		const config = await getConfigOptions();
+		if (!config.enabled || !hasMatchingHost(config.rules, details.originUrl || details.documentUrl || details.url)) {
+			return;
+		}
+
+		const requestHeaders = Array.isArray(details.requestHeaders) ? [...details.requestHeaders] : [];
+		upsertHeader(requestHeaders, 'Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');
+		upsertHeader(requestHeaders, 'Pragma', 'no-cache');
+
+		return { requestHeaders };
+	},
+	{
+		urls: ['<all_urls>'],
+	},
+	['blocking', 'requestHeaders'],
+);
+
+browser.webRequest.onHeadersReceived.addListener(
+	async (details) => {
+		const config = await getConfigOptions();
+		if (!config.enabled || !hasMatchingHost(config.rules, details.originUrl || details.documentUrl || details.url)) {
+			return;
+		}
+
+		const responseHeaders = Array.isArray(details.responseHeaders) ? [...details.responseHeaders] : [];
+		upsertHeader(responseHeaders, 'Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');
+		upsertHeader(responseHeaders, 'Pragma', 'no-cache');
+		upsertHeader(responseHeaders, 'Expires', '0');
+
+		return { responseHeaders };
+	},
+	{
+		urls: ['<all_urls>'],
+	},
+	['blocking', 'responseHeaders'],
 );
 
 /**
@@ -134,10 +180,13 @@ async function getConfigOptions() {
  * @returns {ExtensionConfig} The normalized configuration.
  */
 function normalizeConfig(config) {
+	const legacyAlertDefault = config?.alertOnScriptPatched !== false;
 	return {
-		alertOnScriptPatched: config?.alertOnScriptPatched !== false,
+		enabled: config?.enabled !== false,
 		rules: Array.isArray(config?.rules)
-			? config.rules.map((rule) => normalizeRule(rule)).filter((rule) => rule.host && rule.script)
+			? config.rules
+					.map((rule, index) => normalizeRule(rule, index, legacyAlertDefault))
+					.filter((rule) => rule.host && rule.script)
 			: [],
 	};
 }
@@ -148,13 +197,19 @@ function normalizeConfig(config) {
  * @param {number} [index=0] - The index of the rule.
  * @returns {Rule} The normalized rule.
  */
-function normalizeRule(rule, index = 0) {
+function normalizeRule(rule, index = 0, legacyAlertDefault = true) {
 	return {
+		enabled: rule?.enabled !== false,
 		name: String(rule?.name || '').trim() || `JS-Rule-${index + 1}`,
 		host: String(rule?.host || '').trim(),
 		pattern: String(rule?.pattern || '').trim(),
+		alertOnScriptPatched: rule?.alertOnScriptPatched === undefined ? legacyAlertDefault !== false : rule.alertOnScriptPatched !== false,
 		script: String(rule?.script || '').trim(),
 	};
+}
+
+function hasMatchingHost(rules, url) {
+	return rules.some((rule) => rule.enabled && matchesHost(rule.host, url));
 }
 
 /**
@@ -166,7 +221,7 @@ function normalizeRule(rule, index = 0) {
  */
 function getMatchingRules(rules, documentUrl, requestUrl) {
 	return rules.filter((rule) => {
-		return matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl);
+		return rule.enabled && matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl);
 	});
 }
 
@@ -267,6 +322,16 @@ function prependPatchSuccessMessage(scriptBody, requestUrl, alertOnScriptPatched
 	const successMessage = `✅ Script patched successfully!\nURL: ${requestUrl}`;
 	scriptBody = `console.log(${JSON.stringify(successMessage)});\n${scriptBody}`;
 	return alertOnScriptPatched ? `alert(${JSON.stringify(successMessage)});\n${scriptBody}` : scriptBody;
+}
+
+function upsertHeader(headers, name, value) {
+	const existingHeader = headers.find((header) => header?.name?.toLowerCase() === name.toLowerCase());
+	if (existingHeader) {
+		existingHeader.value = value;
+		return;
+	}
+
+	headers.push({ name, value });
 }
 
 /**

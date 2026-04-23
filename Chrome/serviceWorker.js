@@ -1,12 +1,14 @@
 /**
  * @typedef ExtensionConfig
- * @property {boolean} alertOnScriptPatched - Whether to alert on script patched.
+ * @property {boolean} enabled - Whether the extension is enabled globally.
  * @property {Array<Rule>} rules - Array of rules for patching scripts.
 
  * @typedef Rule
+ * @property {boolean} enabled - Whether this rule is enabled.
  * @property {string} name - The user-facing name for the rule.
  * @property {string} host - The host to match against.
  * @property {string} pattern - The pattern to match against the request URL.
+ * @property {boolean} alertOnScriptPatched - Whether to alert when this rule patches a script.
  * @property {string} script - The script to run in the sandbox.
  */
 
@@ -14,7 +16,7 @@
  * @type {ExtensionConfig}
  */
 const DEFAULT_CONFIG = {
-	alertOnScriptPatched: true,
+	enabled: true,
 	rules: [],
 };
 
@@ -41,14 +43,17 @@ chrome.storage.onChanged.addListener((changes, area) => {
 	}
 
 	const nextConfig = { ...runtimeConfig };
-	if (changes.alertOnScriptPatched) {
-		nextConfig.alertOnScriptPatched = changes.alertOnScriptPatched.newValue;
+	if (changes.enabled) {
+		nextConfig.enabled = changes.enabled.newValue;
 	}
 	if (changes.rules) {
 		nextConfig.rules = changes.rules.newValue;
 	}
 
 	runtimeConfig = normalizeConfig(nextConfig);
+	syncDebuggerSessions().catch((error) => {
+		console.error('Failed to sync debugger sessions after config change.', error);
+	});
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -56,6 +61,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 		return;
 	}
 	try {
+		if (!runtimeConfig.enabled) {
+			if (attachedTabIds.has(tabId)) {
+				await detachDebugger(tabId);
+			}
+			return;
+		}
+
 		const shouldAttach = hasMatchingHost(runtimeConfig.rules, tab.url);
 		if (shouldAttach && !attachedTabIds.has(tabId)) {
 			await attachDebugger(tabId);
@@ -125,7 +137,8 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 		}
 
 		if (modified) {
-			scriptBody = prependPatchSuccessMessage(scriptBody, requestUrl, runtimeConfig.alertOnScriptPatched);
+			const shouldAlert = matchingRules.some((rule) => rule.alertOnScriptPatched);
+			scriptBody = prependPatchSuccessMessage(scriptBody, requestUrl, shouldAlert);
 		}
 
 		await sendDebuggerCommand(source, 'Fetch.fulfillRequest', {
@@ -148,6 +161,7 @@ async function loadConfig() {
 		chrome.storage.sync.get(DEFAULT_CONFIG, resolve);
 	});
 	runtimeConfig = normalizeConfig(storedConfig);
+	await syncDebuggerSessions();
 }
 
 /**
@@ -156,10 +170,13 @@ async function loadConfig() {
  * @returns {ExtensionConfig} - The normalized configuration.
  */
 function normalizeConfig(config) {
+	const legacyAlertDefault = config?.alertOnScriptPatched !== false;
 	return {
-		alertOnScriptPatched: config?.alertOnScriptPatched !== false,
+		enabled: config?.enabled !== false,
 		rules: Array.isArray(config?.rules)
-			? config.rules.map((rule, index) => normalizeRule(rule, index)).filter((rule) => rule.host && rule.script)
+			? config.rules
+					.map((rule, index) => normalizeRule(rule, index, legacyAlertDefault))
+					.filter((rule) => rule.host && rule.script)
 			: [],
 	};
 }
@@ -170,11 +187,13 @@ function normalizeConfig(config) {
  * @param {number} [index=0] - The index of the rule.
  * @returns {Rule} - The normalized rule.
  */
-function normalizeRule(rule, index = 0) {
+function normalizeRule(rule, index = 0, legacyAlertDefault = true) {
 	return {
+		enabled: rule?.enabled !== false,
 		name: String(rule?.name || '').trim() || `JS-Rule-${index + 1}`,
 		host: String(rule?.host || '').trim(),
 		pattern: String(rule?.pattern || '').trim(),
+		alertOnScriptPatched: rule?.alertOnScriptPatched === undefined ? legacyAlertDefault !== false : rule.alertOnScriptPatched !== false,
 		script: String(rule?.script || '').trim(),
 	};
 }
@@ -186,7 +205,7 @@ function normalizeRule(rule, index = 0) {
  * @returns {boolean} - True if there is a matching host, false otherwise.
  */
 function hasMatchingHost(rules, url) {
-	return rules.some((rule) => matchesHost(rule.host, url));
+	return rules.some((rule) => rule.enabled && matchesHost(rule.host, url));
 }
 
 /**
@@ -198,7 +217,7 @@ function hasMatchingHost(rules, url) {
  */
 function getMatchingRules(rules, documentUrl, requestUrl) {
 	return rules.filter((rule) => {
-		return matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl);
+		return rule.enabled && matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl);
 	});
 }
 
@@ -314,6 +333,8 @@ async function attachDebugger(tabId) {
 	}
 
 	attachedTabIds.add(tabId);
+	await sendDebuggerCommand({ tabId }, 'Network.enable', {});
+	await sendDebuggerCommand({ tabId }, 'Network.setCacheDisabled', { cacheDisabled: true });
 	await sendDebuggerCommand({ tabId }, 'Fetch.enable', {
 		patterns: [
 			{
@@ -336,8 +357,63 @@ async function detachDebugger(tabId) {
 		// Ignore disable errors during teardown.
 	}
 
+	try {
+		await sendDebuggerCommand({ tabId }, 'Network.setCacheDisabled', { cacheDisabled: false });
+	} catch (error) {
+		// Ignore cache reset errors during teardown.
+	}
+
+	try {
+		await sendDebuggerCommand({ tabId }, 'Network.disable', {});
+	} catch (error) {
+		// Ignore network disable errors during teardown.
+	}
+
 	await chrome.debugger.detach({ tabId });
 	attachedTabIds.delete(tabId);
+}
+
+async function syncDebuggerSessions() {
+	if (!runtimeConfig.enabled) {
+		await detachAllDebuggers();
+		return;
+	}
+
+	// const tabs = await chrome.tabs.query({});
+	// for (const tab of tabs) {
+	// 	if (typeof tab.id !== 'number' || !tab.url) {
+	// 		continue;
+	// 	}
+
+	// 	const shouldAttach = hasMatchingHost(runtimeConfig.rules, tab.url);
+	// 	if (shouldAttach && !attachedTabIds.has(tab.id)) {
+	// 		try {
+	// 			await attachDebugger(tab.id);
+	// 		} catch (error) {
+	// 			console.error(`Failed to attach debugger for tab ${tab.id}.`, error);
+	// 		}
+	// 		continue;
+	// 	}
+
+	// 	if (!shouldAttach && attachedTabIds.has(tab.id)) {
+	// 		try {
+	// 			await detachDebugger(tab.id);
+	// 		} catch (error) {
+	// 			console.error(`Failed to detach debugger for tab ${tab.id}.`, error);
+	// 		}
+	// 	}
+	// }
+}
+
+async function detachAllDebuggers() {
+	const tabIds = Array.from(attachedTabIds);
+	for (const tabId of tabIds) {
+		try {
+			await detachDebugger(tabId);
+		} catch (error) {
+			console.error(`Failed to detach debugger for tab ${tabId}.`, error);
+		}
+	}
 }
 
 /**

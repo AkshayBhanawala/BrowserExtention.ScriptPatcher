@@ -26,7 +26,7 @@ const DEFAULT_RULE_SCRIPT = `/**
 }`;
 
 const DEFAULT_CONFIG = {
-	alertOnScriptPatched: true,
+	enabled: true,
 	rules: [],
 };
 
@@ -44,24 +44,24 @@ async function initOptions() {
 	const container = document.getElementById('rules-container');
 	const emptyState = document.getElementById('rules-empty');
 	const status = document.getElementById('save-status');
-	const alertCheckbox = document.getElementById('alert-on-script-patched');
+	const enabledCheckbox = document.getElementById('extension-enabled');
 
 	const storedConfig = normalizeConfig(await storageGet(DEFAULT_CONFIG));
-	alertCheckbox.checked = storedConfig.alertOnScriptPatched;
+	enabledCheckbox.checked = storedConfig.enabled;
 	renderRules(container, emptyState, storedConfig.rules);
 
 	addBtn.addEventListener('click', async () => {
 		addRule(container, emptyState, createEmptyRule(), { expanded: true });
-		await saveAllRules(container, status, alertCheckbox.checked, emptyState);
+		await saveAllRules(container, status, enabledCheckbox.checked, emptyState);
 	});
 
-	alertCheckbox.addEventListener('change', async () => {
-		await saveAllRules(container, status, alertCheckbox.checked, emptyState);
+	enabledCheckbox.addEventListener('change', async () => {
+		await saveAllRules(container, status, enabledCheckbox.checked, emptyState);
 	});
 
 	exportBtn.addEventListener('click', async () => {
 		const config = normalizeConfig({
-			alertOnScriptPatched: alertCheckbox.checked,
+			enabled: enabledCheckbox.checked,
 			rules: readRulesFromContainer(container),
 		});
 		downloadConfig(config);
@@ -86,7 +86,7 @@ async function initOptions() {
 		try {
 			const importedText = await file.text();
 			const importedConfig = normalizeConfig(JSON.parse(importedText));
-			alertCheckbox.checked = importedConfig.alertOnScriptPatched;
+			enabledCheckbox.checked = importedConfig.enabled;
 			renderRules(container, emptyState, importedConfig.rules);
 			await storageSet(importedConfig);
 			showStatus('Config imported.', status);
@@ -101,27 +101,35 @@ async function initOptions() {
 
 function createEmptyRule() {
 	return {
+		enabled: true,
 		name: '',
 		host: '',
 		pattern: '',
+		alertOnScriptPatched: true,
 		script: DEFAULT_RULE_SCRIPT,
 	};
 }
 
 function normalizeConfig(config) {
-	const alertOnScriptPatched = config?.alertOnScriptPatched !== false;
+	const legacyAlertDefault = config?.alertOnScriptPatched !== false;
+	const enabled = config?.enabled !== false;
 	const rules = Array.isArray(config?.rules)
-		? config.rules.map((rule, index) => normalizeRule(rule, index)).filter((rule) => rule.host && rule.script)
+		? config.rules
+				.map((rule, index) => normalizeRule(rule, index, legacyAlertDefault))
+				.filter((rule) => rule.host && rule.script)
 		: [];
 
-	return { alertOnScriptPatched, rules };
+	return { enabled, rules };
 }
 
-function normalizeRule(rule, index = 0) {
+function normalizeRule(rule, index = 0, legacyAlertDefault = true) {
 	return {
+		enabled: rule?.enabled !== false,
 		name: String(rule?.name || '').trim() || getDefaultRuleName(index + 1),
 		host: String(rule?.host || '').trim(),
 		pattern: String(rule?.pattern || '').trim(),
+		alertOnScriptPatched:
+			rule?.alertOnScriptPatched === undefined ? legacyAlertDefault !== false : rule.alertOnScriptPatched !== false,
 		script: String(rule?.script || '').trim() || DEFAULT_RULE_SCRIPT,
 	};
 }
@@ -153,14 +161,18 @@ function addRule(container, emptyState, rule, options = {}) {
 	title.className = 'rule-title';
 	title.textContent = normalizedRule.name;
 
+	const enabledToggle = createToggle('rule-enabled', normalizedRule.enabled, 'Enable rule', 'Rule Enabled?');
+	enabledToggle.classList.add('rule-toggle');
+
 	const deleteBtn = document.createElement('button');
 	deleteBtn.type = 'button';
-	deleteBtn.className = 'secondary-button danger-button rule-delete';
 	deleteBtn.setAttribute('aria-label', 'Delete rule');
+	deleteBtn.classList.add('secondary-button', 'danger-button', 'rule-delete', 'pseudo-tooltip');
+	deleteBtn.dataset.pseudoTooltip = 'Delete this rule';
 	deleteBtn.innerHTML =
-		'<span class="delete-label">Delete</span><span class="delete-icon"><img src="assets/Delete.svg" /></span>';
+		'<!--<span class="delete-label">Delete</span>--><span class="delete-icon"><img src="assets/Delete.svg" /></span>';
 
-	header.append(expandIcon, title, deleteBtn);
+	header.append(expandIcon, title, enabledToggle, deleteBtn);
 	wrapper.appendChild(header);
 
 	const details = document.createElement('div');
@@ -168,32 +180,39 @@ function addRule(container, emptyState, rule, options = {}) {
 
 	const fields = [
 		{
+			tag: 'input',
 			label: 'Rule Name',
 			className: 'name-input',
-			tag: 'input',
 			placeholder: getDefaultRuleName(container.querySelectorAll('.rule-card').length + 1),
 			value: normalizedRule.name,
 			required: true,
 		},
 		{
+			tag: 'input',
 			label: 'Host',
 			className: 'host-input',
-			tag: 'input',
 			placeholder: '*.example.com',
 			value: normalizedRule.host || '',
 			required: true,
 		},
 		{
+			tag: 'input',
 			label: 'Target File Path Pattern RegExp',
 			className: 'pattern-input',
-			tag: 'input',
 			placeholder: '/some/path/name/.*.js',
 			value: normalizedRule.pattern || '',
 		},
 		{
+			tag: 'checkbox',
+			label: 'Alert On Script Patched',
+			className: 'alert-on-script-patched-input',
+			checked: normalizedRule.alertOnScriptPatched,
+			description: 'Show a browser alert when this rule patches a matched script.',
+		},
+		{
+			tag: 'textarea',
 			label: 'JavaScript Code To Run On Matched URLs',
 			className: 'script-input',
-			tag: 'textarea',
 			placeholder: DEFAULT_RULE_SCRIPT,
 			value: normalizedRule.script || DEFAULT_RULE_SCRIPT,
 			required: true,
@@ -201,6 +220,25 @@ function addRule(container, emptyState, rule, options = {}) {
 	];
 
 	fields.forEach((field) => {
+		if (field.tag === 'checkbox') {
+			const row = document.createElement('div');
+			row.className = 'setting-row inline-setting';
+
+			const text = document.createElement('div');
+			const label = document.createElement('div');
+			label.className = 'field-label inline-label';
+			label.textContent = field.label;
+
+			const description = document.createElement('div');
+			description.className = 'description';
+			description.textContent = field.description;
+
+			text.append(label, description);
+			row.append(text, createToggle(field.className, field.checked, field.label, 'Alert?'));
+			details.appendChild(row);
+			return;
+		}
+
 		const label = document.createElement('label');
 		label.className = 'field-label';
 		label.textContent = field.label;
@@ -230,7 +268,7 @@ function addRule(container, emptyState, rule, options = {}) {
 		await saveAllRules(
 			container,
 			document.getElementById('save-status'),
-			document.getElementById('alert-on-script-patched').checked,
+			document.getElementById('extension-enabled').checked,
 			emptyState,
 		);
 	}, 250);
@@ -252,7 +290,7 @@ function addRule(container, emptyState, rule, options = {}) {
 	});
 
 	header.addEventListener('click', (event) => {
-		if (event.target.closest('.rule-delete')) {
+		if (event.target.closest('.rule-delete') || event.target.closest('.rule-toggle')) {
 			return;
 		}
 
@@ -282,7 +320,7 @@ function addRule(container, emptyState, rule, options = {}) {
 				await saveAllRules(
 					container,
 					document.getElementById('save-status'),
-					document.getElementById('alert-on-script-patched').checked,
+					document.getElementById('extension-enabled').checked,
 					emptyState,
 				);
 			}
@@ -293,24 +331,48 @@ function addRule(container, emptyState, rule, options = {}) {
 function readRulesFromContainer(container) {
 	return Array.from(container.querySelectorAll('.rule-card'))
 		.map((card) => {
+			const enabled = card.querySelector('.rule-enabled').checked;
 			const nameInput = card.querySelector('.name-input');
 			const name = (nameInput?.value || nameInput?.placeholder || '').trim();
 			const host = card.querySelector('.host-input').value.trim();
 			const pattern = card.querySelector('.pattern-input').value.trim();
+			const alertOnScriptPatched = card.querySelector('.alert-on-script-patched-input').checked;
 			const script = card.querySelector('.script-input').value.trim();
-			return { name, host, pattern, script };
+			return { enabled, name, host, pattern, alertOnScriptPatched, script };
 		})
 		.filter((rule) => rule.host && rule.script);
 }
 
-async function saveAllRules(container, status, alertOnScriptPatched, emptyState) {
+async function saveAllRules(container, status, enabled, emptyState) {
 	const config = normalizeConfig({
-		alertOnScriptPatched,
+		enabled,
 		rules: readRulesFromContainer(container),
 	});
 	updateEmptyState(container, emptyState);
 	await storageSet(config);
 	showStatus('Saved.', status);
+}
+
+function createToggle(inputClassName, checked, ariaLabel, pseudoTooltip) {
+	const toggle = document.createElement('label');
+	toggle.className = 'switch';
+
+	if (pseudoTooltip) {
+		toggle.classList.add('pseudo-tooltip');
+		toggle.dataset.pseudoTooltip = pseudoTooltip;
+	}
+
+	const input = document.createElement('input');
+	input.type = 'checkbox';
+	input.className = inputClassName;
+	input.checked = checked;
+	input.setAttribute('aria-label', ariaLabel);
+
+	const slider = document.createElement('span');
+	slider.className = 'slider';
+
+	toggle.append(input, slider);
+	return toggle;
 }
 
 function updateEmptyState(container, emptyState) {
