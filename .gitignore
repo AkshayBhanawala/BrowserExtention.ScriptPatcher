@@ -6,3 +6,11 @@ node_modules/
 build/
 dist/
 vendor/
+
+*.map
+
+Chrome/options.*
+FireFox/options.*
+
+Chrome/assets/
+FireFox/assets/

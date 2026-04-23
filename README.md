@@ -14,6 +14,7 @@ Script Patcher is a Manifest V3 browser extension project for Chrome and Firefox
 - Optionally filter only specific JavaScript request URLs with a regular expression
 - Run user-defined patch functions in a sandboxed environment
 - Toggle an alert banner before a patched script continues
+- Optionally inject an in-page notification banner for all patched script of the page
 - Import and export extension config as JSON
 - Build Chrome and Firefox distributions from one repository
 
@@ -47,6 +48,8 @@ Each rule contains:
 - `name`: Friendly label shown in the UI
 - `host`: Hostname pattern to match against the current page URL
 - `pattern`: Optional regular expression matched against the requested JavaScript URL
+- `alertOnScriptPatched`: Whether to show a browser alert when the rule patches a script
+- `webpageNotificationOnScriptPatched`: Whether to inject the webpage notification helper when the rule patches a script
 - `script`: A function that receives the original script body and returns the patched body
 
 Example rule:
@@ -69,12 +72,13 @@ Example config export:
 
 ```json
 {
-  "alertOnScriptPatched": true,
   "rules": [
     {
       "name": "Replace feature flag",
       "host": "*.example.com",
       "pattern": "/assets/.*\\.js$",
+      "alertOnScriptPatched": false,
+      "webpageNotificationOnScriptPatched": true,
       "script": "(scriptBody) => scriptBody.replaceAll('__FLAG__', 'enabled')"
     }
   ]
@@ -85,9 +89,11 @@ Example config export:
 
 ### Requirements
 
+- VS Code
 - Node.js 18+
 - A Chromium-based browser for Chrome testing
 - Firefox 140+ for Firefox testing
+- VS Code Extension [Run on Save](https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave) (For automatically running tasks on save for minifying and copying assets)
 
 ### Install Dependencies
 

@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"module": "esnext",
 		"target": "esnext",
-		"checkJs": true,
+		"checkJs": false,
 		"types": ["chrome", "firefox-webext-browser", "node"]
 	},
 	"typeAcquisition": {

@@ -105,7 +105,8 @@ function createEmptyRule() {
 		name: '',
 		host: '',
 		pattern: '',
-		alertOnScriptPatched: true,
+		webpageNotificationOnScriptPatched: true,
+		alertOnScriptPatched: false,
 		script: DEFAULT_RULE_SCRIPT,
 	};
 }
@@ -128,8 +129,8 @@ function normalizeRule(rule, index = 0, legacyAlertDefault = true) {
 		name: String(rule?.name || '').trim() || getDefaultRuleName(index + 1),
 		host: String(rule?.host || '').trim(),
 		pattern: String(rule?.pattern || '').trim(),
-		alertOnScriptPatched:
-			rule?.alertOnScriptPatched === undefined ? legacyAlertDefault !== false : rule.alertOnScriptPatched !== false,
+		webpageNotificationOnScriptPatched: rule?.webpageNotificationOnScriptPatched === true,
+		alertOnScriptPatched: rule?.alertOnScriptPatched || false,
 		script: String(rule?.script || '').trim() || DEFAULT_RULE_SCRIPT,
 	};
 }
@@ -155,7 +156,7 @@ function addRule(container, emptyState, rule, options = {}) {
 
 	const expandIcon = document.createElement('span');
 	expandIcon.className = 'expand-icon';
-	expandIcon.innerHTML = "<img src='assets/right.svg' />";
+	expandIcon.innerHTML = "<img src='assets/img/right.svg' />";
 
 	const title = document.createElement('span');
 	title.className = 'rule-title';
@@ -170,7 +171,7 @@ function addRule(container, emptyState, rule, options = {}) {
 	deleteBtn.classList.add('secondary-button', 'danger-button', 'rule-delete', 'pseudo-tooltip');
 	deleteBtn.dataset.pseudoTooltip = 'Delete this rule';
 	deleteBtn.innerHTML =
-		'<!--<span class="delete-label">Delete</span>--><span class="delete-icon"><img src="assets/Delete.svg" /></span>';
+		'<!--<span class="delete-label">Delete</span>--><span class="delete-icon"><img src="assets/img/Delete.svg" /></span>';
 
 	header.append(expandIcon, title, enabledToggle, deleteBtn);
 	wrapper.appendChild(header);
@@ -201,6 +202,13 @@ function addRule(container, emptyState, rule, options = {}) {
 			className: 'pattern-input',
 			placeholder: '/some/path/name/.*.js',
 			value: normalizedRule.pattern || '',
+		},
+		{
+			tag: 'checkbox',
+			label: 'Show Webpage Notification',
+			className: 'webpage-notification-on-script-patched-input',
+			checked: normalizedRule.webpageNotificationOnScriptPatched,
+			description: 'Inject and show the webpage notification UI when this rule patches a matched script.',
 		},
 		{
 			tag: 'checkbox',
@@ -336,9 +344,12 @@ function readRulesFromContainer(container) {
 			const name = (nameInput?.value || nameInput?.placeholder || '').trim();
 			const host = card.querySelector('.host-input').value.trim();
 			const pattern = card.querySelector('.pattern-input').value.trim();
+			const webpageNotificationOnScriptPatched = card.querySelector(
+				'.webpage-notification-on-script-patched-input',
+			).checked;
 			const alertOnScriptPatched = card.querySelector('.alert-on-script-patched-input').checked;
 			const script = card.querySelector('.script-input').value.trim();
-			return { enabled, name, host, pattern, alertOnScriptPatched, script };
+			return { enabled, name, host, pattern, webpageNotificationOnScriptPatched, alertOnScriptPatched, script };
 		})
 		.filter((rule) => rule.host && rule.script);
 }

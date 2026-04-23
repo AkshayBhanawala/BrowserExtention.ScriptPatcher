@@ -1,4 +1,7 @@
 /**
+ * @typedef StaticResources
+ * @property {string} webpageNotificationScriptStr - The script string to inject in patched scripts for showing webpage notification.
+ *
  * @typedef ExtensionConfig
  * @property {boolean} enabled - Whether the extension is enabled globally.
  * @property {Array<Rule>} rules - Array of rules for patching scripts.
@@ -8,9 +11,17 @@
  * @property {string} name - The user-facing name for the rule.
  * @property {string} host - The host to match against.
  * @property {string} pattern - The pattern to match against the request URL.
+ * @property {boolean} webpageNotificationOnScriptPatched - Whether to inject the webpage notification when this rule patches a script.
  * @property {boolean} alertOnScriptPatched - Whether to alert when this rule patches a script.
  * @property {string} script - The script to run in the sandbox.
  */
+
+/**
+ * @type {StaticResources}
+ */
+const STATIC_RESOURCES = {
+	WebpageNotificationOnScript: '', // THIS GETS OVERRIDDEN IN LOAD
+};
 
 /**
  * @type {ExtensionConfig}
@@ -35,7 +46,38 @@ const attachedTabIds = new Set();
  */
 let offscreenReadyPromise = null;
 
+loadWebpageNotificationScriptStr();
 loadConfig();
+
+/**
+ * Loads the webpage notification helper script once.
+ * @returns {void}
+ */
+async function loadWebpageNotificationScriptStr() {
+	if (!STATIC_RESOURCES.webpageNotificationScriptStr) {
+		try {
+			const response = await fetch(chrome.runtime.getURL('assets/js/WebpageNotification.js'));
+			if (!response.ok) {
+				throw new Error(`Failed to load webpage notification script: ${response.status}`);
+			}
+			STATIC_RESOURCES.webpageNotificationScriptStr = await response.text();
+			console.log('Loaded WebpageNotification.js:', STATIC_RESOURCES.webpageNotificationScriptStr);
+		} catch (error) {
+			console.error('Unable to load WebpageNotification.js.', error);
+		}
+	}
+}
+
+/**
+ * Loads the configuration from chrome.storage.sync.
+ */
+async function loadConfig() {
+	const storedConfig = await new Promise((resolve) => {
+		chrome.storage.sync.get(DEFAULT_CONFIG, resolve);
+	});
+	runtimeConfig = normalizeConfig(storedConfig);
+	await syncDebuggerSessions();
+}
 
 chrome.storage.onChanged.addListener((changes, area) => {
 	if (area !== 'sync') {
@@ -137,8 +179,9 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 		}
 
 		if (modified) {
+			const shouldShowWebpageNotification = matchingRules.some((rule) => rule.webpageNotificationOnScriptPatched);
 			const shouldAlert = matchingRules.some((rule) => rule.alertOnScriptPatched);
-			scriptBody = prependPatchSuccessMessage(scriptBody, requestUrl, shouldAlert);
+			scriptBody = prependPatchSuccessMessage(scriptBody, requestUrl, shouldShowWebpageNotification, shouldAlert);
 		}
 
 		await sendDebuggerCommand(source, 'Fetch.fulfillRequest', {
@@ -154,29 +197,15 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 });
 
 /**
- * Loads the configuration from chrome.storage.sync.
- */
-async function loadConfig() {
-	const storedConfig = await new Promise((resolve) => {
-		chrome.storage.sync.get(DEFAULT_CONFIG, resolve);
-	});
-	runtimeConfig = normalizeConfig(storedConfig);
-	await syncDebuggerSessions();
-}
-
-/**
  * Normalizes the runtime configuration.
  * @param {ExtensionConfig} config - The configuration to normalize.
  * @returns {ExtensionConfig} - The normalized configuration.
  */
 function normalizeConfig(config) {
-	const legacyAlertDefault = config?.alertOnScriptPatched !== false;
 	return {
 		enabled: config?.enabled !== false,
 		rules: Array.isArray(config?.rules)
-			? config.rules
-					.map((rule, index) => normalizeRule(rule, index, legacyAlertDefault))
-					.filter((rule) => rule.host && rule.script)
+			? config.rules.map((rule, index) => normalizeRule(rule, index)).filter((rule) => rule.host && rule.script)
 			: [],
 	};
 }
@@ -187,13 +216,14 @@ function normalizeConfig(config) {
  * @param {number} [index=0] - The index of the rule.
  * @returns {Rule} - The normalized rule.
  */
-function normalizeRule(rule, index = 0, legacyAlertDefault = true) {
+function normalizeRule(rule, index = 0) {
 	return {
 		enabled: rule?.enabled !== false,
 		name: String(rule?.name || '').trim() || `JS-Rule-${index + 1}`,
 		host: String(rule?.host || '').trim(),
 		pattern: String(rule?.pattern || '').trim(),
-		alertOnScriptPatched: rule?.alertOnScriptPatched === undefined ? legacyAlertDefault !== false : rule.alertOnScriptPatched !== false,
+		alertOnScriptPatched: rule?.alertOnScriptPatched || false,
+		webpageNotificationOnScriptPatched: rule?.webpageNotificationOnScriptPatched === true,
 		script: String(rule?.script || '').trim(),
 	};
 }
@@ -217,7 +247,9 @@ function hasMatchingHost(rules, url) {
  */
 function getMatchingRules(rules, documentUrl, requestUrl) {
 	return rules.filter((rule) => {
-		return rule.enabled && matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl);
+		return (
+			rule.enabled && matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl)
+		);
 	});
 }
 
@@ -494,13 +526,54 @@ function sanitizeResponseHeaders(headers) {
  * Prepends a patch success message to the script body.
  * @param {string} scriptBody - The script body to prepend the message to.
  * @param {string} requestUrl - The request URL.
+ * @param {boolean} webpageNotificationOnScriptPatched - Whether to inject the webpage notification.
  * @param {boolean} alertOnScriptPatched - Whether to alert on script patched.
  * @returns {string} - The modified script body with the success message prepended.
  */
-function prependPatchSuccessMessage(scriptBody, requestUrl, alertOnScriptPatched) {
-	const successMessage = `✅ Script patched successfully!\nURL: ${requestUrl}`;
-	scriptBody = `console.log(${JSON.stringify(successMessage)});\n${scriptBody}`;
-	return alertOnScriptPatched ? `alert(${JSON.stringify(successMessage)});\n${scriptBody}` : scriptBody;
+function prependPatchSuccessMessage(scriptBody, requestUrl, webpageNotificationOnScriptPatched, alertOnScriptPatched) {
+	const baseMessage = `✅ Script patched successfully!`;
+	const successConsoleMessage = `${baseMessage}\nURL: ${requestUrl}`;
+	const successHtmlNotification = `${baseMessage}<br />URL: ${escapeHtml(requestUrl)}`;
+	scriptBody = `console.log(${JSON.stringify(successConsoleMessage)});\n${scriptBody}`;
+
+	if (webpageNotificationOnScriptPatched) {
+		if (STATIC_RESOURCES.webpageNotificationScriptStr) {
+			scriptBody = `${STATIC_RESOURCES.webpageNotificationScriptStr};\nwindow.scriptPatcherShowWebpageNotification?.(${JSON.stringify(successHtmlNotification)});\n${scriptBody}`;
+		}
+	}
+
+	if (alertOnScriptPatched) {
+		scriptBody = `alert(${JSON.stringify(successConsoleMessage)});\n${scriptBody}`;
+	}
+
+	return scriptBody;
+}
+
+/**
+ * Get the WebpageNotification script as a string.
+ * @returns {string}
+ */
+function getWebpageNotificationScript() {
+	return STATIC_RESOURCES.webpageNotificationScriptStr;
+}
+
+/**
+ * Escapes HTML-sensitive characters in a string.
+ * @param {string} value - The string to escape.
+ * @returns {string} - The escaped string.
+ */
+function escapeHtml(value) {
+	return String(value || '').replace(/[&<>"']/g, (character) => {
+		return (
+			{
+				'&': '&amp;',
+				'<': '&lt;',
+				'>': '&gt;',
+				'"': '&quot;',
+				"'": '&#39;',
+			}[character] || character
+		);
+	});
 }
 
 /**

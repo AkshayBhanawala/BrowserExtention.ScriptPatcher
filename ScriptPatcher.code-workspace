@@ -13,5 +13,26 @@
 			"path": "FireFox",
 		},
 	],
-	"settings": {},
+	"settings": {
+		"emeraldwalk.runonsave": {
+			"commands": [
+				{
+					"match": "Common\\\\options.html$",
+					"cmd": "echo '${relativeFile}' saved. && npm run minify:Common:assets:options:html",
+				},
+				{
+					"match": "Common\\\\options.js$",
+					"cmd": "echo '${relativeFile}' saved. && npm run minify:Common:assets:options:js",
+				},
+				{
+					"match": "Common\\\\assets\\\\img\\\\.*$",
+					"cmd": "echo '${relativeFile}' saved. && npm run copy:Common:assets:img",
+				},
+				{
+					"match": "Common\\\\assets\\\\js\\\\.*.js$",
+					"cmd": "echo '${relativeFile}' saved. && npm run minify:Common:assets:js",
+				},
+			],
+		},
+	},
 }

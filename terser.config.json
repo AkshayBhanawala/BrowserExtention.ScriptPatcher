@@ -1,0 +1,11 @@
+{
+	"parse": {
+		"ecma": 2020
+	},
+	"compress": {
+		"drop_console": false
+	},
+	"mangle": true,
+	"ecma": 2020,
+	"sourceMap": false
+}

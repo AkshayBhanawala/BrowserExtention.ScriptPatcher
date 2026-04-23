@@ -14,7 +14,8 @@
 		"*://*/*"
 	],
 	"background": {
-		"service_worker": "serviceWorker.js"
+		"service_worker": "serviceWorker.js",
+		"type": "module"
 	},
 	"options_page": "options.html",
 	"sandbox": {
@@ -23,20 +24,20 @@
 		]
 	},
 	"icons": {
-		"16": "assets/ScriptPatcher.logo.png",
-		"24": "assets/ScriptPatcher.logo.png",
-		"32": "assets/ScriptPatcher.logo.png",
-		"48": "assets/ScriptPatcher.logo.png",
-		"128": "assets/ScriptPatcher.logo.png"
+		"16": "assets/img/ScriptPatcher.logo.png",
+		"24": "assets/img/ScriptPatcher.logo.png",
+		"32": "assets/img/ScriptPatcher.logo.png",
+		"48": "assets/img/ScriptPatcher.logo.png",
+		"128": "assets/img/ScriptPatcher.logo.png"
 	},
 	"action": {
 		"default_popup": "options.html",
 		"default_icon": {
-			"16": "assets/ScriptPatcher.logo.png",
-			"24": "assets/ScriptPatcher.logo.png",
-			"32": "assets/ScriptPatcher.logo.png",
-			"48": "assets/ScriptPatcher.logo.png",
-			"128": "assets/ScriptPatcher.logo.png"
+			"16": "assets/img/ScriptPatcher.logo.png",
+			"24": "assets/img/ScriptPatcher.logo.png",
+			"32": "assets/img/ScriptPatcher.logo.png",
+			"48": "assets/img/ScriptPatcher.logo.png",
+			"128": "assets/img/ScriptPatcher.logo.png"
 		}
 	}
 }

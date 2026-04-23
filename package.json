@@ -1,16 +1,41 @@
 {
-  "name": "script-patcher",
-  "description": "Patch matched JavaScript files with sandboxed user-defined rules.",
-  "version": "1.1.0",
-  "type": "module",
-  "scripts": {
-    "build": "node scripts/build-extensions.mjs",
-    "build:chrome": "node scripts/build-extensions.mjs chrome",
-    "build:firefox": "node scripts/build-extensions.mjs firefox"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.1.40",
-    "@types/firefox-webext-browser": "^143.0.0",
-    "@types/node": "^25.6.0"
-  }
+	"name": "script-patcher",
+	"description": "Patch matched JavaScript files with sandboxed user-defined rules.",
+	"version": "1.1.0",
+	"type": "module",
+	"scripts": {
+		"prebuild": "npm rum prepare:Common:assets",
+		"build": "node scripts/build-extensions.mjs",
+		"build:Chrome": "node scripts/build-extensions.mjs Chrome",
+		"build:FireFox": "node scripts/build-extensions.mjs FireFox",
+		"prepare:Common:assets": "npm run copy:Common:assets:img && npm run minify:Common:assets:options && npm run minify:Common:assets:js",
+		"prepare:Common:assets:Chrome": "npm run copy:Common:assets:img:Chrome && npm run minify:Common:assets:options:Chrome && npm run minify:Common:assets:js:Chrome",
+		"prepare:Common:assets:FireFox": "npm run copy:Common:assets:img:FireFox && npm run minify:Common:assets:options:FireFox && npm run minify:Common:assets:js:FireFox",
+		"copy:Common:assets:img": "npm rum copy:Common:assets:img:Chrome && npm rum copy:Common:assets:img:FireFox",
+		"copy:Common:assets:img:Chrome": "shx mkdir -p Chrome/assets/img && shx cp -r Common/assets/img Chrome/assets",
+		"copy:Common:assets:img:FireFox": "shx mkdir -p FireFox/assets/img && shx cp -r Common/assets/img FireFox/assets",
+		"minify:Common:assets:options": "npm rum minify:Common:assets:options:Chrome && npm run minify:Common:assets:options:FireFox",
+		"minify:Common:assets:options:Chrome": "npm rum minify:Common:assets:options:html:Chrome && npm run minify:Common:assets:options:js:Chrome",
+		"minify:Common:assets:options:FireFox": "npm rum minify:Common:assets:options:html:FireFox && npm run minify:Common:assets:options:js:FireFox",
+		"minify:Common:assets:options:html": "npm rum minify:Common:assets:options:html:Chrome && npm run minify:Common:assets:options:html:FireFox",
+		"minify:Common:assets:options:html:Chrome": "html-minifier --collapse-whitespace --remove-comments --minify-js true --minify-css true --output Chrome/options.html Common/options.html",
+		"minify:Common:assets:options:html:FireFox": "html-minifier --collapse-whitespace --remove-comments --minify-js true --minify-css true --output FireFox/options.html Common/options.html",
+		"minify:Common:assets:options:js": "npm rum minify:Common:assets:options:js:Chrome && npm run minify:Common:assets:options:js:FireFox",
+		"minify:Common:assets:options:js:Chrome": "terser Common/options.js --config-file terser.config.json -o Chrome/options.js",
+		"minify:Common:assets:options:js:FireFox": "terser Common/options.js --config-file terser.config.json -o FireFox/options.js",
+		"minify:Common:assets:js": "npm run minify:Common:assets:js:file:WebpageNotification",
+		"minify:Common:assets:js:Chrome": "npm run minify:Common:assets:js:file:WebpageNotification:Chrome",
+		"minify:Common:assets:js:FireFox": "npm run minify:Common:assets:js:file:WebpageNotification:FireFox",
+		"minify:Common:assets:js:file:WebpageNotification": "npm run minify:Common:assets:js:file:WebpageNotification:Chrome && npm run minify:Common:assets:js:file:WebpageNotification:FireFox",
+		"minify:Common:assets:js:file:WebpageNotification:Chrome": "terser Common/assets/js/WebpageNotification.js --config-file terser.config.json -o Chrome/assets/js/WebpageNotification.js",
+		"minify:Common:assets:js:file:WebpageNotification:FireFox": "terser Common/assets/js/WebpageNotification.js --config-file terser.config.json -o FireFox/assets/js/WebpageNotification.js"
+	},
+	"devDependencies": {
+		"@types/Chrome": "^0.1.40",
+		"@types/FireFox-webext-browser": "^143.0.0",
+		"@types/node": "^25.6.0",
+		"html-minifier": "^4.0.0",
+		"shx": "^0.4.0",
+		"terser": "^5.46.2"
+	}
 }
