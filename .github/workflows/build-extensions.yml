@@ -23,10 +23,13 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install dependencies
+      - name: Node version check
         run: |
           node -v
-          node i
+          npm -v
+
+      - name: Install dependencies
+        run: npm i
 
       - name: Build Chrome and Firefox packages
         run: npm run build
