@@ -18,6 +18,13 @@ Script Patcher is a Manifest V3 browser extension project for Chrome and Firefox
 - Import and export extension config as JSON
 - Build Chrome and Firefox distributions from one repository
 
+## Chrome Web Store
+[<img src="https://developer.chrome.com/static/docs/webstore/branding/image/YT2Grfi9vEBa2wAPzhWa.png" alt="Script Patcher on Chrome Web Store" width="500" style="">](https://chromewebstore.google.com/detail/script-patcher/mchpceopgbdpdcagbdflfikcifhaicbd)
+
+## Firefox Add-ons
+[<img src="https://addons.mozilla.org/static-frontend/459ebe418a9783cd0b80bdd8b98e5faa.svg" alt="Firefox Add-ons on Chrome Web Store" width="400" style="margin-left: 22px">](https://addons.mozilla.org/en-US/firefox/addon/script-patcher/)
+
+
 ## Project Structure
 
 ```text
