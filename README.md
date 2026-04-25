@@ -1,6 +1,6 @@
 # [Script Patcher](https://github.com/AkshayBhanawala/BrowserExtention.ScriptPatcher)
 
-![Script Patcher logo](./docs/images/ScriptPatcher.png)
+![Script Patcher logo](./docs/images/Promo.Big.1400x890.png)
 
 Patch matched JavaScript files with sandboxed user-defined rules.
 
