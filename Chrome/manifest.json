@@ -24,20 +24,20 @@
 		]
 	},
 	"icons": {
-		"16": "assets/img/Logo.Icon.426.png.png",
-		"24": "assets/img/Logo.Icon.426.png.png",
-		"32": "assets/img/Logo.Icon.426.png.png",
-		"48": "assets/img/Logo.Icon.426.png.png",
-		"128": "assets/img/Logo.Icon.426.png.png"
+		"16": "assets/img/Logo.Icon.426.png",
+		"24": "assets/img/Logo.Icon.426.png",
+		"32": "assets/img/Logo.Icon.426.png",
+		"48": "assets/img/Logo.Icon.426.png",
+		"128": "assets/img/Logo.Icon.426.png"
 	},
 	"action": {
 		"default_popup": "options.html",
 		"default_icon": {
-			"16": "assets/img/Logo.Icon.426.png.png",
-			"24": "assets/img/Logo.Icon.426.png.png",
-			"32": "assets/img/Logo.Icon.426.png.png",
-			"48": "assets/img/Logo.Icon.426.png.png",
-			"128": "assets/img/Logo.Icon.426.png.png"
+			"16": "assets/img/Logo.Icon.426.png",
+			"24": "assets/img/Logo.Icon.426.png",
+			"32": "assets/img/Logo.Icon.426.png",
+			"48": "assets/img/Logo.Icon.426.png",
+			"128": "assets/img/Logo.Icon.426.png"
 		}
 	}
 }

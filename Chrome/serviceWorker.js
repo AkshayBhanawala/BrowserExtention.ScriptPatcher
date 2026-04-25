@@ -130,7 +130,9 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 	}
 
 	detachDebugger(tabId).catch((error) => {
-		console.error('Failed to detach debugger on tab removal.', error);
+		if (!error.toString().includes('No tab with given id')) {
+			console.error('Failed to detach debugger on tab removal.', error);
+		}
 	});
 });
 

@@ -25,9 +25,6 @@ console.error(`__dirname:`, __dirname);
 const repoRoot = path.resolve(__dirname, '..');
 console.error(`repoRoot:`, repoRoot);
 
-const distRoot = path.join(repoRoot, 'dist');
-console.error(`distRoot:`, distRoot);
-
 const outFilePath = path.join(repoRoot, 'terser.config.json');
 writeFileSync(outFilePath, JSON.stringify(config, null, '\t') + '\n', 'utf8');
-console.error(`File Written::`, outFilePath);
+console.error(`File Written:`, outFilePath);

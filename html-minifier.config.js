@@ -1,11 +1,11 @@
 /**
  * @type {import("html-minifier-next").MinifierOptions}
  */
-const config = {
+export const config = {
 	collapseWhitespace: true,
 	removeComments: true,
 	minifyJS: true,
 	minifyCSS: true,
 	minifySVG: true,
 };
-module.exports = config;
+export default config;
