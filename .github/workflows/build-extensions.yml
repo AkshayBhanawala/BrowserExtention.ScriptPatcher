@@ -59,7 +59,7 @@ jobs:
           archive: false
 
       - name: Upload Firefox artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ScriptPatcher.v${{ steps.versions.outputs.firefox_version }}.firefox.zip
           path: dist/ScriptPatcher.v${{ steps.versions.outputs.firefox_version }}.firefox.zip
