@@ -52,13 +52,13 @@ jobs:
         run: zip -r "../ScriptPatcher.v${{ steps.versions.outputs.firefox_version }}.firefox.zip" .
 
       - name: Upload Chrome artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: script-patcher-chrome-v${{ steps.versions.outputs.chrome_version }}
+          name: dist/ScriptPatcher.v${{ steps.versions.outputs.chrome_version }}.chrome
           path: dist/ScriptPatcher.v${{ steps.versions.outputs.chrome_version }}.chrome.zip
 
       - name: Upload Firefox artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: script-patcher-firefox-v${{ steps.versions.outputs.firefox_version }}
+          name: ScriptPatcher.v${{ steps.versions.outputs.firefox_version }}.firefox
           path: dist/ScriptPatcher.v${{ steps.versions.outputs.firefox_version }}.firefox.zip
