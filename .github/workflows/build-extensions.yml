@@ -23,8 +23,13 @@ jobs:
         with:
           node-version: 24
 
+      - name: Install dependencies
+        run: |
+          node -v
+          node i
+
       - name: Build Chrome and Firefox packages
-        run: node scripts/build-extensions.mjs
+        run: npm run build
 
       - name: Read extension versions
         id: versions

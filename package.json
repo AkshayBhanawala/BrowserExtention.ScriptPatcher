@@ -32,14 +32,12 @@
 		"minify:Common:assets:js:file:WebpageNotification:Chrome": "npm run prepare:terser:config && terser Common/assets/js/WebpageNotification.js --config-file terser.config.json -o Chrome/assets/js/WebpageNotification.js",
 		"minify:Common:assets:js:file:WebpageNotification:FireFox": "npm run prepare:terser:config && terser Common/assets/js/WebpageNotification.js --config-file terser.config.json -o FireFox/assets/js/WebpageNotification.js"
 	},
-	"dependencies": {
-		"html-minifier-next": "^6.1.5",
-		"terser": "^5.46.2"
-	},
 	"devDependencies": {
 		"@types/chrome": "^0.1.40",
 		"@types/firefox-webext-browser": "^143.0.0",
 		"@types/node": "^25.6.0",
-		"shx": "^0.4.0"
+		"html-minifier-next": "^6.1.5",
+		"shx": "^0.4.0",
+		"terser": "^5.46.2"
 	}
 }
