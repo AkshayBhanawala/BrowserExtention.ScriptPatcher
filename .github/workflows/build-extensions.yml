@@ -24,9 +24,10 @@ jobs:
           node-version: 24
 
       - name: Node version check
-        run: |
-          node -v
-          npm -v
+        run: node -v
+
+      - name: NPM version check
+        run: npm -v
 
       - name: Install dependencies
         run: npm i
@@ -37,27 +38,27 @@ jobs:
       - name: Read extension versions
         id: versions
         run: |
-          chrome_version=$(node -p "JSON.parse(require('fs').readFileSync('Chrome/manifest.json', 'utf8')).version")
-          firefox_version=$(node -p "JSON.parse(require('fs').readFileSync('FireFox/manifest.json', 'utf8')).version")
+          chrome_version=$(node -p "JSON.parse(require('fs').readFileSync('Chrome/manifest.json', 'utf8')).version.split('.').join('')")
+          firefox_version=$(node -p "JSON.parse(require('fs').readFileSync('FireFox/manifest.json', 'utf8')).version.split('.').join('')")
           echo "chrome_version=$chrome_version" >> "$GITHUB_OUTPUT"
           echo "firefox_version=$firefox_version" >> "$GITHUB_OUTPUT"
 
       - name: Archive Chrome extension
-        working-directory: dist/chrome
-        run: zip -r "../script-patcher-chrome-v${{ steps.versions.outputs.chrome_version }}.zip" .
+        working-directory: dist/Chrome
+        run: zip -r "../ScriptPatcher.v${{ steps.versions.outputs.chrome_version }}.chrome.zip" .
 
       - name: Archive Firefox extension
-        working-directory: dist/firefox
-        run: zip -r "../script-patcher-firefox-v${{ steps.versions.outputs.firefox_version }}.zip" .
+        working-directory: dist/FireFox
+        run: zip -r "../ScriptPatcher.v${{ steps.versions.outputs.firefox_version }}.firefox.zip" .
 
       - name: Upload Chrome artifact
         uses: actions/upload-artifact@v4
         with:
           name: script-patcher-chrome-v${{ steps.versions.outputs.chrome_version }}
-          path: dist/script-patcher-chrome-v${{ steps.versions.outputs.chrome_version }}.zip
+          path: dist/ScriptPatcher.v${{ steps.versions.outputs.chrome_version }}.chrome.zip
 
       - name: Upload Firefox artifact
         uses: actions/upload-artifact@v4
         with:
           name: script-patcher-firefox-v${{ steps.versions.outputs.firefox_version }}
-          path: dist/script-patcher-firefox-v${{ steps.versions.outputs.firefox_version }}.zip
+          path: dist/ScriptPatcher.v${{ steps.versions.outputs.firefox_version }}.firefox.zip
