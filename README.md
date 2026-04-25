@@ -18,10 +18,10 @@ Script Patcher is a Manifest V3 browser extension project for Chrome and Firefox
 - Import and export extension config as JSON
 - Build Chrome and Firefox distributions from one repository
 
-## Chrome Web Store
+## [Chrome Web Store](https://chromewebstore.google.com/detail/script-patcher/mchpceopgbdpdcagbdflfikcifhaicbd)
 [<img src="https://developer.chrome.com/static/docs/webstore/branding/image/YT2Grfi9vEBa2wAPzhWa.png" alt="Script Patcher on Chrome Web Store" width="500" style="">](https://chromewebstore.google.com/detail/script-patcher/mchpceopgbdpdcagbdflfikcifhaicbd)
 
-## Firefox Add-ons
+## [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/script-patcher/)
 [<img src="https://addons.mozilla.org/static-frontend/459ebe418a9783cd0b80bdd8b98e5faa.svg" alt="Firefox Add-ons on Chrome Web Store" width="400" style="margin-left: 22px">](https://addons.mozilla.org/en-US/firefox/addon/script-patcher/)
 
 
@@ -48,7 +48,10 @@ Chrome uses the `debugger` API plus an offscreen document to intercept and rewri
 
 ![Rule editor](./docs/images/Rule-Editor.png)
 
-## Rule Format
+
+## [Watch on YouTube](https://youtu.be/WVAMLIRVzBs)
+[![Youtube Link](./docs/images/Promo.Marquee.1400x560.png)](https://youtu.be/WVAMLIRVzBs)
+
 
 Each rule contains:
 
@@ -118,17 +121,8 @@ npm run build
 
 Build only Chrome:
 
-```bash
-npm run build:chrome
-```
 
-Build only Firefox:
-
-```bash
-npm run build:firefox
-```
-
-The build script copies the browser-specific source folders into `dist/chrome` and `dist/firefox`, and writes a `dist/build-manifest.json` summary file.
+The build script builds and copies the browser-specific source folders into `dist/chrome` and `dist/firefox`, and writes a `dist/build-manifest.json` summary file.
 
 ## Load The Extension
 
@@ -137,14 +131,14 @@ The build script copies the browser-specific source folders into `dist/chrome` a
 1. Open `chrome://extensions`
 2. Enable Developer mode
 3. Choose `Load unpacked`
-4. Select `dist/chrome` or the `Chrome` folder
+4. Select `dist/Chrome` or the `Chrome` folder
 
 ### Firefox
 
 1. Open `about:debugging`
 2. Choose `This Firefox`
 3. Click `Load Temporary Add-on`
-4. Select the `manifest.json` file from `dist/firefox` or `FireFox`
+4. Select the `manifest.json` file from `dist/FireFox` or `FireFox`
 
 ## Using Script Patcher
 
