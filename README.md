@@ -119,8 +119,6 @@ Build both extensions:
 npm run build
 ```
 
-Build only Chrome:
-
 
 The build script builds and copies the browser-specific source folders into `dist/chrome` and `dist/firefox`, and writes a `dist/build-manifest.json` summary file.
 
