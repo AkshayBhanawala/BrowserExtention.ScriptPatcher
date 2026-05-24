@@ -130,6 +130,7 @@ browser.webRequest.onBeforeRequest.addListener(
 		filter.onstop = async () => {
 			try {
 				scriptBody += decoder.decode();
+				let modifierRules = [];
 				let modified = false;
 
 				for (const rule of matchingRules) {
@@ -137,6 +138,7 @@ browser.webRequest.onBeforeRequest.addListener(
 						const nextBody = await runRuleInSandbox(rule.script, scriptBody, config);
 						if (typeof nextBody === 'string' && nextBody !== scriptBody) {
 							scriptBody = nextBody;
+							modifierRules.push(rule.name);
 							modified = true;
 						}
 					} catch (error) {
@@ -147,7 +149,7 @@ browser.webRequest.onBeforeRequest.addListener(
 				if (modified) {
 					const shouldShowWebpageNotification = matchingRules.some((rule) => rule.webpageNotificationOnScriptPatched);
 					const shouldAlert = matchingRules.some((rule) => rule.alertOnScriptPatched);
-					scriptBody = prependPatchSuccessMessage(scriptBody, details.url, shouldShowWebpageNotification, shouldAlert);
+					scriptBody = prependPatchSuccessMessage(scriptBody, modifierRules, details.url, shouldShowWebpageNotification, shouldAlert);
 				}
 
 				filter.write(encoder.encode(scriptBody));
@@ -352,15 +354,15 @@ function isJavaScriptFile(url) {
  * @param {boolean} alertOnScriptPatched - Whether to show an alert.
  * @returns {string} The modified script body with a success message.
  */
-function prependPatchSuccessMessage(scriptBody, requestUrl, webpageNotificationOnScriptPatched, alertOnScriptPatched) {
+function prependPatchSuccessMessage(scriptBody, modifierRules, requestUrl, webpageNotificationOnScriptPatched, alertOnScriptPatched) {
 	const baseMessage = `✅ Script patched successfully!`;
-	const successConsoleMessage = `${baseMessage}\nURL: ${requestUrl}`;
-	const successHtmlNotification = `${baseMessage}<br />URL: ${escapeHtml(requestUrl)}`;
+	const successConsoleMessage = `${baseMessage}\nURL: ${requestUrl}\nModifiers: ${JSON.stringify(modifierRules)}`;
+	const successHtmlNotification = `${baseMessage}<br />URL: ${escapeHtml(requestUrl)}<br />Modifiers: ${JSON.stringify(modifierRules)}`;
 	scriptBody = `console.log(${JSON.stringify(successConsoleMessage)});\n${scriptBody}`;
 
 	if (webpageNotificationOnScriptPatched) {
 		if (STATIC_RESOURCES.webpageNotificationScriptStr) {
-			scriptBody = `${STATIC_RESOURCES.webpageNotificationScriptStr};\nwindow.scriptPatcherShowWebpageNotification?.(${JSON.stringify(successHtmlNotification)});\n${scriptBody}`;
+			scriptBody = `${STATIC_RESOURCES.webpageNotificationScriptStr};\nwindow['scriptPatcher.showWebpageNotification']?.(${JSON.stringify(successHtmlNotification)});\n${scriptBody}`;
 		}
 	}
 

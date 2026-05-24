@@ -1,5 +1,5 @@
 (() => {
-	const notifierKey = 'scriptPatcherShowWebpageNotification';
+	const notifierKey = 'scriptPatcher.showWebpageNotification';
 	if (typeof window[notifierKey] === 'function') {
 		return;
 	}
@@ -11,7 +11,7 @@
 		const styleId = 'script-patcher-webpage-notification-styles';
 		const nClassName = 'script-patcher-webpage-notification';
 
-		const messageKey = 'scriptPatcherWebpageNotificationMessage';
+		const messageKey = 'scriptPatcher.WebpageNotification.Message';
 		if (!document.getElementById(styleId)) {
 			if (window[messageKey]) {
 				window[messageKey] += `<hr />${message}`;
@@ -48,6 +48,7 @@
 						font-size: 1rem !important;
 						font-weight: normal;
 						font-style: normal;
+						pointer-events: none;
 						opacity: 0;
 						transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 					}
@@ -63,8 +64,8 @@
 				(document.head || document.documentElement).appendChild(style);
 			}
 
-			const elemKey = 'scriptPatcherWebpageNotificationElement';
-			const cleanupTimeoutKey = 'scriptPatcherWebpageNotificationCleanupTimeout';
+			const elemKey = 'scriptPatcher.webpageNotification.element';
+			const cleanupTimeoutKey = 'scriptPatcher.webpageNotification.cleanupTimeout';
 
 			if (window[elemKey]) {
 				clearTimeout(window[cleanupTimeoutKey]);
@@ -85,10 +86,14 @@
 				window[elemKey]?.addEventListener('transitionend', () => window[elemKey]?.remove(), { once: true });
 
 				window[cleanupTimeoutKey] = undefined;
-				window[elemKey] = undefined;
 				window[messageKey] = undefined;
 				window[notifierKey] = undefined;
-			}, 5000);
+
+				setTimeout(() => {
+					window[elemKey]?.remove();
+					window[elemKey] = undefined;
+				}, 500);
+			}, 3000);
 		};
 
 		if (document.body || document.documentElement) {

@@ -166,6 +166,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 			requestId: params.requestId,
 		});
 		let scriptBody = decodeDebuggerBody(responseBody);
+		let modifierRules = [];
 		let modified = false;
 
 		for (const rule of matchingRules) {
@@ -173,6 +174,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 				const nextBody = await runRuleInSandbox(rule.script, scriptBody);
 				if (typeof nextBody === 'string' && nextBody !== scriptBody) {
 					scriptBody = nextBody;
+					modifierRules.push(rule.name);
 					modified = true;
 				}
 			} catch (error) {
@@ -183,7 +185,7 @@ chrome.debugger.onEvent.addListener(async (source, method, params) => {
 		if (modified) {
 			const shouldShowWebpageNotification = matchingRules.some((rule) => rule.webpageNotificationOnScriptPatched);
 			const shouldAlert = matchingRules.some((rule) => rule.alertOnScriptPatched);
-			scriptBody = prependPatchSuccessMessage(scriptBody, requestUrl, shouldShowWebpageNotification, shouldAlert);
+			scriptBody = prependPatchSuccessMessage(scriptBody, modifierRules, requestUrl, shouldShowWebpageNotification, shouldAlert);
 		}
 
 		await sendDebuggerCommand(source, 'Fetch.fulfillRequest', {
@@ -532,15 +534,15 @@ function sanitizeResponseHeaders(headers) {
  * @param {boolean} alertOnScriptPatched - Whether to alert on script patched.
  * @returns {string} - The modified script body with the success message prepended.
  */
-function prependPatchSuccessMessage(scriptBody, requestUrl, webpageNotificationOnScriptPatched, alertOnScriptPatched) {
+function prependPatchSuccessMessage(scriptBody, modifierRules, requestUrl, webpageNotificationOnScriptPatched, alertOnScriptPatched) {
 	const baseMessage = `✅ Script patched successfully!`;
-	const successConsoleMessage = `${baseMessage}\nURL: ${requestUrl}`;
-	const successHtmlNotification = `${baseMessage}<br />URL: ${escapeHtml(requestUrl)}`;
+	const successConsoleMessage = `${baseMessage}\nURL: ${requestUrl}\nModifiers: ${JSON.stringify(modifierRules)}`;
+	const successHtmlNotification = `${baseMessage}<br />URL: ${escapeHtml(requestUrl)}<br />Modifiers: ${JSON.stringify(modifierRules)}`;
 	scriptBody = `console.log(${JSON.stringify(successConsoleMessage)});\n${scriptBody}`;
 
 	if (webpageNotificationOnScriptPatched) {
 		if (STATIC_RESOURCES.webpageNotificationScriptStr) {
-			scriptBody = `${STATIC_RESOURCES.webpageNotificationScriptStr};\nwindow.scriptPatcherShowWebpageNotification?.(${JSON.stringify(successHtmlNotification)});\n${scriptBody}`;
+			scriptBody = `${STATIC_RESOURCES.webpageNotificationScriptStr};\nwindow['scriptPatcher.showWebpageNotification']?.(${JSON.stringify(successHtmlNotification)});\n${scriptBody}`;
 		}
 	}
 
