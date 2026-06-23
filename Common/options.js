@@ -13,14 +13,19 @@ api.tabs.getCurrent((tab) => {
 	}
 });
 
+(scriptBody) => {
+
+}
 const DEFAULT_RULE_SCRIPT = `/**
  * @param {string} scriptBody Original script body content
  * @returns {string} Modified script body content
  */
 (scriptBody) => {
-	if (scriptBody.includes('search-string')) {
-		// Example: Replace 'search-string' with 'replace-string'
-		return scriptBody.replaceAll('search-string', 'replace-string');
+	// Example: Replace 'searchStrs' with 'replaceStrs' in their index order
+	const searchStrs = ['CodeToFind', /RegExToFind/];
+	const replaceStrs = ['CodeToReplaceWith', 'RegexToReplaceWith'];
+	for (let i = 0; i < searchStrs.length; i++) {
+		scriptBody = scriptBody.replaceAll(searchStrs[i], replaceStrs[i]);
 	}
 	return scriptBody;
 }`;
@@ -426,20 +431,20 @@ function getDefaultRuleName(ruleNumber) {
 
 function storageGet(defaults) {
 	if (usesPromiseStorage) {
-		return api.storage.sync.get(defaults);
+		return api.storage.local.get(defaults);
 	}
 
 	return new Promise((resolve) => {
-		api.storage.sync.get(defaults, resolve);
+		api.storage.local.get(defaults, resolve);
 	});
 }
 
 function storageSet(values) {
 	if (usesPromiseStorage) {
-		return api.storage.sync.set(values);
+		return api.storage.local.set(values);
 	}
 
 	return new Promise((resolve) => {
-		api.storage.sync.set(values, resolve);
+		api.storage.local.set(values, resolve);
 	});
 }

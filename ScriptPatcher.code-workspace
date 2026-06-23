@@ -5,6 +5,10 @@
 			"path": ".",
 		},
 		{
+			"name": "Common",
+			"path": "Common",
+		},
+		{
 			"name": "Chrome",
 			"path": "Chrome",
 		},

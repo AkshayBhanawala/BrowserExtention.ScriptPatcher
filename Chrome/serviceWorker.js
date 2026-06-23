@@ -69,18 +69,18 @@ async function loadWebpageNotificationScriptStr() {
 }
 
 /**
- * Loads the configuration from chrome.storage.sync.
+ * Loads the configuration from chrome.storage.local.
  */
 async function loadConfig() {
 	const storedConfig = await new Promise((resolve) => {
-		chrome.storage.sync.get(DEFAULT_CONFIG, resolve);
+		chrome.storage.local.get(DEFAULT_CONFIG, resolve);
 	});
 	runtimeConfig = normalizeConfig(storedConfig);
 	await syncDebuggerSessions();
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-	if (area !== 'sync') {
+	if (area !== 'local') {
 		return;
 	}
 

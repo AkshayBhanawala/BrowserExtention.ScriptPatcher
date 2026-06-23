@@ -77,7 +77,7 @@ async function getConfigOptions() {
 		return configOptions;
 	}
 
-	const storedConfig = await browser.storage.sync.get(DEFAULT_CONFIG);
+	const storedConfig = await browser.storage.local.get(DEFAULT_CONFIG);
 	configOptions = normalizeConfig(storedConfig);
 	return configOptions;
 }
@@ -85,7 +85,7 @@ async function getConfigOptions() {
 window.addEventListener('message', handleSandboxMessage);
 
 browser.storage.onChanged.addListener(async (changes, area) => {
-	if (area !== 'sync') {
+	if (area !== 'local') {
 		return;
 	}
 

@@ -1,7 +1,7 @@
 {
 	"name": "script-patcher",
 	"description": "Patch matched JavaScript files with sandboxed user-defined rules.",
-	"version": "1.5.1",
+	"version": "1.5.2",
 	"type": "module",
 	"scripts": {
 		"prebuild": "npm rum prepare:Common:assets",
