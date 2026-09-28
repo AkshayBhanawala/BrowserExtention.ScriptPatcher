@@ -48,7 +48,7 @@
 						font-size: 1rem !important;
 						font-weight: normal;
 						font-style: normal;
-						pointer-events: none;
+						cursor: pointer;
 						opacity: 0;
 						transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 					}
@@ -79,9 +79,12 @@
 				setTimeout(() => {
 					window[elemKey]?.classList?.add(`${nClassName}-visible`);
 				}, 10);
+				window[elemKey]?.addEventListener(`click`, removeNotification);
 			}
 
-			window[cleanupTimeoutKey] = setTimeout(() => {
+			window[cleanupTimeoutKey] = setTimeout(removeNotification, 3000);
+
+			function removeNotification() {
 				window[elemKey]?.classList?.remove(`${nClassName}-visible`);
 				window[elemKey]?.addEventListener('transitionend', () => window[elemKey]?.remove(), { once: true });
 
@@ -93,7 +96,7 @@
 					window[elemKey]?.remove();
 					window[elemKey] = undefined;
 				}, 500);
-			}, 3000);
+			}
 		};
 
 		if (document.body || document.documentElement) {

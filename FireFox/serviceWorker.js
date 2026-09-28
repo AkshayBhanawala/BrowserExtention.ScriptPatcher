@@ -5,10 +5,16 @@
  * @typedef ExtensionConfig
  * @property {boolean} enabled - Whether the extension is enabled globally.
  * @property {Array<Rule>} rules - Array of rules for patching scripts.
+ * @property {Array<Group>} groups - Array of rules groups.
+
+ * @typedef Group
+ * @property {boolean} enabled - Whether this group is enabled.
+ * @property {string} name - The user-facing name for the group.
 
  * @typedef Rule
  * @property {boolean} enabled - Whether this rule is enabled.
  * @property {string} name - The user-facing name for the rule.
+ * @property {string} group - The group this rule belongs to.
  * @property {string} host - The host to match against.
  * @property {string} pattern - The pattern to match against the request URL.
  * @property {boolean} webpageNotificationOnScriptPatched - Whether to inject the webpage notification when this rule patches a script.
@@ -29,6 +35,7 @@ const STATIC_RESOURCES = {
 const DEFAULT_CONFIG = {
 	enabled: true,
 	rules: [],
+	groups: [],
 };
 
 /**
@@ -111,6 +118,7 @@ browser.webRequest.onBeforeRequest.addListener(
 
 		const matchingRules = getMatchingRules(
 			config.rules,
+			config.groups,
 			details.documentUrl || details.originUrl || details.url,
 			details.url,
 		);
@@ -149,7 +157,13 @@ browser.webRequest.onBeforeRequest.addListener(
 				if (modified) {
 					const shouldShowWebpageNotification = matchingRules.some((rule) => rule.webpageNotificationOnScriptPatched);
 					const shouldAlert = matchingRules.some((rule) => rule.alertOnScriptPatched);
-					scriptBody = prependPatchSuccessMessage(scriptBody, modifierRules, details.url, shouldShowWebpageNotification, shouldAlert);
+					scriptBody = prependPatchSuccessMessage(
+						scriptBody,
+						modifierRules,
+						details.url,
+						shouldShowWebpageNotification,
+						shouldAlert,
+					);
 				}
 
 				filter.write(encoder.encode(scriptBody));
@@ -173,7 +187,10 @@ browser.webRequest.onBeforeRequest.addListener(
 browser.webRequest.onBeforeSendHeaders.addListener(
 	async (details) => {
 		const config = await getConfigOptions();
-		if (!config.enabled || !hasMatchingHost(config.rules, details.originUrl || details.documentUrl || details.url)) {
+		if (
+			!config.enabled ||
+			!hasMatchingHost(config.rules, details.originUrl || details.documentUrl || details.url, config.groups)
+		) {
 			return;
 		}
 
@@ -192,7 +209,10 @@ browser.webRequest.onBeforeSendHeaders.addListener(
 browser.webRequest.onHeadersReceived.addListener(
 	async (details) => {
 		const config = await getConfigOptions();
-		if (!config.enabled || !hasMatchingHost(config.rules, details.originUrl || details.documentUrl || details.url)) {
+		if (
+			!config.enabled ||
+			!hasMatchingHost(config.rules, details.originUrl || details.documentUrl || details.url, config.groups)
+		) {
 			return;
 		}
 
@@ -215,8 +235,16 @@ browser.webRequest.onHeadersReceived.addListener(
  * @returns {ExtensionConfig} The normalized configuration.
  */
 function normalizeConfig(config) {
+	const groups = Array.isArray(config?.groups)
+		? config.groups.map((group) => ({
+				name: String(group?.name || '').trim(),
+				enabled: group?.enabled !== false,
+			}))
+		: [];
+
 	return {
 		enabled: config?.enabled !== false,
+		groups,
 		rules: Array.isArray(config?.rules)
 			? config.rules.map((rule, index) => normalizeRule(rule, index)).filter((rule) => rule.host && rule.script)
 			: [],
@@ -233,6 +261,7 @@ function normalizeRule(rule, index = 0) {
 	return {
 		enabled: rule?.enabled !== false,
 		name: String(rule?.name || '').trim() || `JS-Rule-${index + 1}`,
+		group: String(rule?.group || '').trim(),
 		host: String(rule?.host || '').trim(),
 		pattern: String(rule?.pattern || '').trim(),
 		webpageNotificationOnScriptPatched: rule?.webpageNotificationOnScriptPatched === true,
@@ -241,21 +270,29 @@ function normalizeRule(rule, index = 0) {
 	};
 }
 
-function hasMatchingHost(rules, url) {
-	return rules.some((rule) => rule.enabled && matchesHost(rule.host, url));
+function isRuleActive(rule, groups = configOptions?.groups) {
+	if (!rule.enabled) {
+		return false;
+	}
+	if (rule.group) {
+		const targetGroup = (groups || []).find((g) => g.name === rule.group);
+		if (targetGroup && targetGroup.enabled === false) {
+			return false;
+		}
+	}
+	return true;
 }
 
-/**
- * Retrieves matching rules for a given URL and document URL.
- * @param {Array<Rule>} rules - The list of rules to check against.
- * @param {string} documentUrl - The document URL.
- * @param {string} requestUrl - The request URL.
- * @returns {Array<Rule>} An array of matching rules.
- */
-function getMatchingRules(rules, documentUrl, requestUrl) {
+function hasMatchingHost(rules, url, groups = configOptions?.groups) {
+	return rules.some((rule) => isRuleActive(rule, groups) && matchesHost(rule.host, url));
+}
+
+function getMatchingRules(rules, groups, documentUrl, requestUrl) {
 	return rules.filter((rule) => {
 		return (
-			rule.enabled && matchesHost(rule.host, documentUrl || requestUrl) && matchesPattern(rule.pattern, requestUrl)
+			isRuleActive(rule, groups) &&
+			matchesHost(rule.host, documentUrl || requestUrl) &&
+			matchesPattern(rule.pattern, requestUrl)
 		);
 	});
 }
@@ -354,7 +391,13 @@ function isJavaScriptFile(url) {
  * @param {boolean} alertOnScriptPatched - Whether to show an alert.
  * @returns {string} The modified script body with a success message.
  */
-function prependPatchSuccessMessage(scriptBody, modifierRules, requestUrl, webpageNotificationOnScriptPatched, alertOnScriptPatched) {
+function prependPatchSuccessMessage(
+	scriptBody,
+	modifierRules,
+	requestUrl,
+	webpageNotificationOnScriptPatched,
+	alertOnScriptPatched,
+) {
 	const baseMessage = `✅ Script patched successfully!`;
 	const successConsoleMessage = `${baseMessage}\nURL: ${requestUrl}\nModifiers: ${JSON.stringify(modifierRules)}`;
 	const successHtmlNotification = `${baseMessage}<br />URL: ${escapeHtml(requestUrl)}<br />Modifiers: ${JSON.stringify(modifierRules)}`;
